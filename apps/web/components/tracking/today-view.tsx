@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@myprotocolstack/ui";
 import { Checkbox } from "@myprotocolstack/ui";
 import { Progress } from "@myprotocolstack/ui";
@@ -164,6 +164,16 @@ export function TodayView({
       setIsUpdating(false);
     }
   };
+
+  // Check streaks on mount for already-completed stacks
+  useEffect(() => {
+    stacks.forEach((stack) => {
+      if (isStackFullyCompleted(stack, localTracking)) {
+        checkAndUpdateStreak(stack.id, localTracking);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run once on mount
 
   // Calculate overall progress
   const totalProtocols = stacks.reduce((acc, s) => acc + s.protocol_ids.length, 0);

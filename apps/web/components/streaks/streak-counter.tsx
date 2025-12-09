@@ -29,21 +29,18 @@ export function StreakCounter({
     lg: "text-xl",
   };
 
-  if (streak === 0) {
-    return null;
-  }
-
   return (
     <div
       className={cn(
         "inline-flex items-center font-semibold",
         sizeClasses[size],
+        streak === 0 && "text-muted-foreground opacity-50",
         isAtRisk && "text-amber-500",
         className
       )}
-      title={`${streak} day streak${isAtRisk ? " (at risk)" : ""}`}
+      title={streak === 0 ? "Start your streak!" : `${streak} day streak${isAtRisk ? " (at risk)" : ""}`}
     >
-      <span className={cn(iconSizes[size], "animate-pulse")}>🔥</span>
+      <span className={cn(iconSizes[size], streak > 0 && "animate-pulse")}>🔥</span>
       <span className="tabular-nums">{streak}</span>
       {showLabel && (
         <span className="text-muted-foreground font-normal">
