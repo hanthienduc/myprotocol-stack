@@ -1,10 +1,12 @@
 # MyProtocolStack
 
-**Build and track personalized health protocols based on science**
+Build and track personalized health protocols based on science.
 
 ## Overview
 
-MyProtocolStack helps users create, combine, and track science-based health protocols. Instead of following generic advice, users build their own "stack" of protocols for sleep, focus, energy, nutrition, and fitness - then track adherence and results.
+MyProtocolStack is a micro-SaaS helping users build, combine, and track science-based health protocols. Users browse 30+ curated protocols, create daily "stacks," and track adherence to optimize their health routines.
+
+**Status:** MVP phase - core features implemented, ready for user feedback
 
 ## The Problem
 
@@ -22,64 +24,110 @@ A personal protocol management system that lets you:
 3. **Track Adherence** - Check off completed protocols daily
 4. **See Results** - Correlate protocols with outcomes (energy, sleep, mood)
 
-## Example Protocols
+## Quick Start
 
-### Sleep Stack
-- Morning sunlight (10-30 min within 1hr of waking)
-- No caffeine after 2pm
-- Blue light blocking after sunset
-- Room temp 65-68°F
-- Magnesium before bed
+### Prerequisites
 
-### Focus Stack
-- 90-minute deep work blocks
-- Cold exposure in morning
-- Strategic caffeine timing
-- Movement breaks every 90 min
+- Node.js 18+
+- pnpm
+- Supabase account
 
-### Energy Stack
-- 16:8 intermittent fasting
-- Protein within 1hr of waking
-- No seed oils
-- Blood sugar stability protocols
+### Setup
 
-## Target Users
+```bash
+pnpm install
+cp .env.local.example .env.local
+# Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY
+pnpm dev
+```
 
-- **Biohackers** - Want to optimize everything
-- **Podcast listeners** - Follow Huberman, Attia, Sinclair etc.
-- **Busy professionals** - Need systems, not random tips
-- **Health-conscious beginners** - Overwhelmed by information
+### Environment Variables
 
-## Business Model
+```env
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
 
-### Freemium
-- **Free**: 3 protocols, basic tracking
-- **Pro ($9.99/mo)**: Unlimited protocols, analytics, AI recommendations, wearable sync
+## Features (MVP)
 
-### Revenue Targets
-- 1,000 free users → 50 Pro ($500 MRR)
-- 5,000 free users → 250 Pro ($2,500 MRR)
-- 20,000 free users → 1,000 Pro ($10,000 MRR)
+- **Protocol Library** - 30 curated protocols (Sleep, Focus, Energy, Fitness)
+- **Stack Builder** - Create custom stacks, add/remove protocols
+- **Daily Tracking** - Mark protocols complete with optimistic updates
+- **Analytics** - Adherence percentages, streak tracking
+- **Authentication** - Google OAuth + Magic Link via Supabase
 
 ## Tech Stack
 
-- **Frontend**: Next.js 14+, TypeScript, Tailwind CSS
-- **Backend**: Next.js API Routes, Prisma
-- **Database**: PostgreSQL (Supabase)
-- **Auth**: NextAuth.js (Google, Apple)
-- **AI**: OpenAI API (protocol recommendations)
-- **Hosting**: Vercel
+| Layer | Technology | Version |
+|-------|-----------|---------|
+| Framework | Next.js | 15.1.4 |
+| Runtime | React | 19.0.0 |
+| Language | TypeScript | 5 |
+| Styling | Tailwind CSS | 4 |
+| Components | shadcn/ui | Latest |
+| Database | Supabase (PostgreSQL) | - |
+| Auth | Supabase SSR | 0.5.2 |
+| Notifications | Sonner | 1.7.1 |
+| Theme | next-themes | 0.4.4 |
 
-## Project Status
+## App Structure
 
-**Phase**: Initial Planning
+```text
+app/
+├── (auth)/login, callback        # Public auth routes
+├── (dashboard)/
+│   ├── protocols/                # Browse protocols
+│   ├── stacks/                   # Create/edit stacks
+│   ├── today/                    # Daily tracking view
+│   └── settings/                 # User settings
+└── page.tsx                      # Landing page
+
+components/
+├── ui/                           # shadcn/ui (read-only)
+├── auth/, protocols/, stacks/    # Feature components
+└── tracking/                     # Daily check-in UI
+
+lib/
+├── supabase/client.ts, server.ts # Auth clients
+└── utils.ts                      # Helpers
+
+types/                            # TypeScript types
+```
+
+## Protocols
+
+30 protocols across 4 categories:
+
+- **Sleep** (8): Morning sunlight, caffeine cutoff, temperature, magnesium, etc.
+- **Focus** (7): 90-min blocks, cold exposure, phone-free blocks, etc.
+- **Energy** (8): Intermittent fasting, hydration, meal timing, etc.
+- **Fitness** (7): Zone 2 cardio, resistance training, mobility, etc.
+
+## Pricing
+
+- **Free**: 3 stacks, basic tracking
+- **Pro ($9.99/mo)**: Unlimited stacks, analytics, AI recommendations
 
 ## Documentation
 
-- [Project Overview & PDR](./docs/project-overview-pdr.md)
-- [System Architecture](./docs/system-architecture.md)
-- [Project Roadmap](./docs/project-roadmap.md)
-- [Code Standards](./docs/code-standards.md)
+- [Project Overview & PDR](./docs/project-overview-pdr.md) - Full requirements
+- [System Architecture](./docs/system-architecture.md) - Technical design
+- [Code Standards](./docs/code-standards.md) - Conventions & patterns
+- [Codebase Summary](./docs/codebase-summary.md) - File overview
+- [Project Roadmap](./docs/project-roadmap.md) - Development phases
+- [Design Guidelines](./docs/design-guidelines.md) - UI/UX standards
+- [Deployment Guide](./docs/deployment-guide.md) - Vercel & Supabase setup
+
+## Development
+
+```bash
+pnpm dev          # Start dev server
+pnpm build        # Build for production
+pnpm lint         # Run ESLint
+pnpm test         # Run Jest tests
+pnpm test:e2e     # Run Playwright tests
+```
 
 ## License
 

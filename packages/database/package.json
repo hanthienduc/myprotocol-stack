@@ -1,0 +1,40 @@
+{
+  "name": "@myprotocolstack/database",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./client": {
+      "types": "./src/client.ts",
+      "default": "./src/client.ts"
+    },
+    "./server": {
+      "types": "./src/server.ts",
+      "default": "./src/server.ts"
+    },
+    "./middleware": {
+      "types": "./src/middleware.ts",
+      "default": "./src/middleware.ts"
+    }
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.8.0",
+    "@supabase/supabase-js": "^2.87.0"
+  },
+  "devDependencies": {
+    "@myprotocolstack/typescript-config": "workspace:*",
+    "next": "16.0.8",
+    "typescript": "^5"
+  },
+  "peerDependencies": {
+    "next": ">=14"
+  }
+}

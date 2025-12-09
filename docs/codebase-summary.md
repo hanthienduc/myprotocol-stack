@@ -1,17 +1,17 @@
 # Codebase Summary
 
-**Last Updated**: 2025-12-05
+**Last Updated**: 2025-12-09
 **Version**: 0.1.0
 **Project**: MyProtocolStack
 
 ## Overview
 
-MyProtocolStack is a micro-SaaS for building and tracking personalized health protocols. Users browse science-backed protocols, combine them into "stacks," and track daily adherence.
+MyProtocolStack is a micro-SaaS for building and tracking personalized health protocols. MVP with core features implemented: protocol library, stack builder, daily tracking, and analytics.
 
 ## Project Status
 
-**Phase**: Initial Planning
-**Codebase**: Template initialized
+**Phase**: MVP Implementation
+**Codebase**: Production-ready core features
 
 ## Quick Links
 
@@ -25,15 +25,18 @@ MyProtocolStack is a micro-SaaS for building and tracking personalized health pr
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| Framework | Next.js 14 (App Router) |
-| Language | TypeScript |
-| Styling | Tailwind CSS + shadcn/ui |
-| Database | Supabase (PostgreSQL) |
-| Auth | Supabase Auth |
-| Payments | Stripe |
-| Hosting | Vercel |
+| Layer | Technology | Version |
+|-------|-----------|---------|
+| Framework | Next.js (App Router) | 16.0.8 |
+| Runtime | React | 19.2.1 |
+| Language | TypeScript | 5 |
+| Styling | Tailwind CSS + shadcn/ui | 4 |
+| Database | Supabase PostgreSQL | - |
+| Auth | Supabase SSR | 0.8.0 |
+| UI Components | shadcn/ui + Radix | - |
+| Notifications | Sonner | 2.0.7 |
+| Theme | next-themes | 0.4.6 |
+| Hosting | Vercel | - |
 
 ## Core Features (MVP)
 
@@ -56,12 +59,48 @@ profiles      → User data + subscription tier
 
 ```
 myprotocolstack/
-├── .claude/          # ClaudeKit configuration
-├── docs/             # Documentation
-├── plans/            # Implementation plans
-├── src/              # Source code (to be created)
-├── CLAUDE.md         # Claude instructions
-└── README.md         # Project overview
+├── app/                          # Next.js App Router
+│   ├── (auth)/                   # Auth routes
+│   │   ├── login/page.tsx
+│   │   └── callback/page.tsx
+│   ├── (dashboard)/              # Protected dashboard routes
+│   │   ├── protocols/page.tsx    # Protocol library
+│   │   ├── stacks/
+│   │   │   ├── page.tsx          # Stack list
+│   │   │   ├── new/page.tsx      # Create stack
+│   │   │   └── [id]/page.tsx     # Edit stack
+│   │   ├── today/page.tsx        # Daily tracking
+│   │   └── settings/page.tsx     # User settings
+│   ├── layout.tsx                # Root layout
+│   └── page.tsx                  # Landing page
+│
+├── components/
+│   ├── ui/                       # shadcn/ui (generated)
+│   ├── auth/
+│   │   └── sign-out-button.tsx
+│   ├── protocols/
+│   │   ├── protocol-card.tsx
+│   │   └── protocol-filters.tsx
+│   ├── stacks/
+│   │   ├── stack-builder.tsx     # Create/edit form
+│   │   └── delete-stack-button.tsx
+│   └── tracking/
+│       └── today-view.tsx        # Daily check-in UI
+│
+├── lib/
+│   ├── supabase/
+│   │   ├── client.ts            # Browser client
+│   │   ├── server.ts            # Server client
+│   │   └── middleware.ts        # Auth middleware
+│   └── utils.ts                 # Helpers (cn, etc.)
+│
+├── types/                        # TypeScript definitions
+│   └── database.ts              # Supabase types
+│
+├── middleware.ts                 # Next.js middleware
+├── CLAUDE.md                     # Claude instructions
+├── README.md                     # Project overview
+└── docs/                         # Documentation
 ```
 
 ## Business Model

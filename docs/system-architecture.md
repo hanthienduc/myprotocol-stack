@@ -1,12 +1,12 @@
 # System Architecture
 
-**Last Updated**: 2025-12-05
+**Last Updated**: 2025-12-09
 **Version**: 0.1.0
 **Project**: MyProtocolStack
 
 ## Overview
 
-MyProtocolStack is a serverless web application for managing personal health protocols. Built with Next.js and Supabase, optimized for solo development and low operational costs.
+MyProtocolStack is a serverless full-stack web app for personalized health protocols. Built on Next.js 16 (RSC), Supabase PostgreSQL, optimized for MVP launch and scalability.
 
 ## Architecture Pattern
 
@@ -39,16 +39,16 @@ MyProtocolStack is a serverless web application for managing personal health pro
 
 | Layer | Technology | Cost |
 |-------|------------|------|
-| Frontend | Next.js 14 (App Router) | Free |
-| Styling | Tailwind CSS + shadcn/ui | Free |
+| Frontend | Next.js 16, React 19, TypeScript 5 | Free |
+| Styling | Tailwind CSS 4 + shadcn/ui | Free |
+| Components | Radix UI (headless) | Free |
 | Database | Supabase PostgreSQL | Free tier |
-| Auth | Supabase Auth | Free tier |
+| Auth | Supabase Auth (SSR) | Free tier |
 | Hosting | Vercel | Free tier |
-| Payments | Stripe | 2.9% + 30¢ |
-| Email | Resend | Free tier |
-| Analytics | PostHog | Free tier |
+| Notifications | Sonner | Free |
+| Theme | next-themes | Free |
 
-**Monthly Cost (MVP)**: ~$0 until scale
+**Monthly Cost (MVP)**: $0 until scale (~5K MAU)
 
 ## Database Schema
 

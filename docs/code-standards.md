@@ -1,12 +1,12 @@
-# Code Standards
+# Code Standards & Patterns
 
-**Last Updated**: 2025-12-05
+**Last Updated**: 2025-12-09
 **Version**: 0.1.0
 **Project**: MyProtocolStack
 
 ## Overview
 
-Coding standards for MyProtocolStack. Keep it simple - this is a solo dev micro-SaaS.
+Coding standards for MyProtocolStack. Production patterns for solo-dev, MVP-first micro-SaaS.
 
 ## Principles
 
@@ -28,12 +28,14 @@ Coding standards for MyProtocolStack. Keep it simple - this is a solo dev micro-
 ## Tech Stack
 
 ```
-Next.js 14       - App Router, Server Components
-TypeScript       - Strict mode
-Tailwind CSS     - Utility-first styling
-shadcn/ui        - Component library
-Supabase         - Database + Auth
-Stripe           - Payments
+Next.js 16       - App Router, Server Components, React 19
+TypeScript 5     - Strict mode
+Tailwind CSS 4   - Utility-first, PostCSS plugin
+shadcn/ui        - Headless component library (Radix primitives)
+Supabase 0.8.0   - PostgreSQL, Auth, SSR
+Sonner 2.0       - Toast notifications
+next-themes      - Theme switching (dark/light)
+clsx + tailmerge - Class name utilities
 ```
 
 ## File Structure
