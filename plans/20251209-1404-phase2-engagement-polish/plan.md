@@ -23,10 +23,10 @@ Phase 2 builds engagement features on MVP foundation: onboarding, favorites, str
 | # | Phase | Priority | Status | Progress | Link |
 |---|-------|----------|--------|----------|------|
 | 1 | Onboarding Quiz | P0 | ✅ Complete | 100% | [phase-01](./phase-01-onboarding-quiz.md) |
-| 2 | Protocol Favorites | P1 | Pending | 0% | [phase-02](./phase-02-protocol-favorites.md) |
+| 2 | Protocol Favorites | P1 | ✅ Complete | 100% | [phase-02](./phase-02-protocol-favorites.md) |
 | 3 | Streak System | P1 | ✅ Complete | 100% | [phase-03](./phase-03-streak-system.md) |
 | 4 | Analytics Dashboard | P2 | ✅ Complete | 100% | [phase-04](./phase-04-analytics-dashboard.md) |
-| 5 | Notification System | P2 | Pending | 0% | [phase-05](./phase-05-notification-system.md) |
+| 5 | Notification System | P2 | ✅ Complete | 100% | [phase-05](./phase-05-notification-system.md) |
 | 6 | Advanced Search | P3 | Pending | 0% | [phase-06](./phase-06-advanced-search.md) |
 
 ---

@@ -13,3 +13,4 @@ export * from "./components/separator";
 export * from "./components/progress";
 export * from "./components/sonner";
 export * from "./components/skeleton";
+export * from "./components/switch";

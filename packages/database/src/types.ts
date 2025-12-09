@@ -213,3 +213,29 @@ export type UserBadge = {
   stack_id: string | null;
   unlocked_at: string;
 };
+
+// Notification-related types
+export type NotificationPreferences = {
+  id: string;
+  user_id: string;
+  email_daily_reminder: boolean;
+  email_weekly_summary: boolean;
+  email_streak_alerts: boolean;
+  push_enabled: boolean;
+  push_daily_reminder: boolean;
+  push_streak_alerts: boolean;
+  reminder_time: string; // TIME format "HH:MM"
+  timezone: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PushSubscription = {
+  id: string;
+  user_id: string;
+  endpoint: string;
+  keys_p256dh: string;
+  keys_auth: string;
+  user_agent: string | null;
+  created_at: string;
+};

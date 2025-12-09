@@ -213,9 +213,123 @@ git pull
 - Security audit
 - Dependency updates
 
+## Notification System Setup
+
+The notification system requires additional configuration for email sending and scheduled jobs.
+
+### Email Notifications (Resend)
+
+1. **Create Resend Account**
+   - Sign up at resend.com
+   - Verify your sending domain
+   - Copy API key
+
+2. **Environment Variables**
+   ```
+   RESEND_API_KEY=re_xxxxxxxxxxxx
+   RESEND_FROM_EMAIL=noreply@yourdomain.com
+   ```
+
+3. **Domain Verification**
+   - Add DNS records provided by Resend
+   - Wait for verification (usually < 1 hour)
+
+### Push Notifications (Web Push)
+
+1. **Generate VAPID Keys**
+   ```bash
+   npx web-push generate-vapid-keys
+   ```
+
+2. **Environment Variables**
+   ```
+   NEXT_PUBLIC_VAPID_PUBLIC_KEY=BLxxxxxxxxx
+   VAPID_PRIVATE_KEY=xxxxxxxxx
+   ```
+
+### Scheduled Jobs (Supabase Edge Functions + pg_cron)
+
+Edge Functions handle scheduled notification jobs. Requires Supabase CLI.
+
+1. **Install Supabase CLI**
+   ```bash
+   brew install supabase/tap/supabase  # macOS
+   # or
+   npm install -g supabase
+   ```
+
+2. **Initialize Edge Functions**
+   ```bash
+   supabase init
+   supabase functions new send-daily-reminders
+   supabase functions new send-weekly-summary
+   supabase functions new send-streak-alerts
+   ```
+
+3. **Deploy Edge Functions**
+   ```bash
+   supabase functions deploy send-daily-reminders
+   supabase functions deploy send-weekly-summary
+   supabase functions deploy send-streak-alerts
+   ```
+
+4. **Schedule with pg_cron**
+   ```sql
+   -- Enable pg_cron extension (run in Supabase SQL editor)
+   CREATE EXTENSION IF NOT EXISTS pg_cron;
+
+   -- Daily reminders at user's preferred time (run every minute, filter in function)
+   SELECT cron.schedule(
+     'send-daily-reminders',
+     '* * * * *',
+     $$ SELECT net.http_post(
+       url:='https://<project-ref>.supabase.co/functions/v1/send-daily-reminders',
+       headers:='{"Authorization": "Bearer <service-role-key>"}'::jsonb
+     ) $$
+   );
+
+   -- Weekly summary every Sunday at 9 AM UTC
+   SELECT cron.schedule(
+     'send-weekly-summary',
+     '0 9 * * 0',
+     $$ SELECT net.http_post(
+       url:='https://<project-ref>.supabase.co/functions/v1/send-weekly-summary',
+       headers:='{"Authorization": "Bearer <service-role-key>"}'::jsonb
+     ) $$
+   );
+
+   -- Streak alerts at 6 PM UTC daily
+   SELECT cron.schedule(
+     'send-streak-alerts',
+     '0 18 * * *',
+     $$ SELECT net.http_post(
+       url:='https://<project-ref>.supabase.co/functions/v1/send-streak-alerts',
+       headers:='{"Authorization": "Bearer <service-role-key>"}'::jsonb
+     ) $$
+   );
+   ```
+
+5. **Edge Function Secrets**
+   ```bash
+   supabase secrets set RESEND_API_KEY=re_xxxxxxxxxxxx
+   supabase secrets set VAPID_PRIVATE_KEY=xxxxxxxxx
+   ```
+
+### Testing Notifications
+
+- **Email Preview**: Use react-email dev server
+  ```bash
+  pnpm email:dev  # Visit localhost:3000 to preview templates
+  ```
+- **Push Test**: Use browser dev tools → Application → Service Workers
+- **Edge Function Test**: `supabase functions serve` for local testing
+
 ## References
 
 - [Vercel Deployment Documentation](https://vercel.com/docs)
 - [Supabase Deployment Guide](https://supabase.com/docs/guides/getting-started/architecture)
 - [Next.js Production Checklist](https://nextjs.org/docs/going-to-production)
 - [Supabase Security](https://supabase.com/docs/guides/auth#security)
+- [Supabase Edge Functions](https://supabase.com/docs/guides/functions)
+- [Resend Documentation](https://resend.com/docs)
+- [Web Push Protocol](https://web.dev/push-notifications-overview/)

@@ -2,6 +2,8 @@ import { createClient } from "@myprotocolstack/database/server";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@myprotocolstack/ui";
 import { Badge } from "@myprotocolstack/ui";
 import type { Profile } from "@myprotocolstack/database";
+import { NotificationSettings } from "@/components/settings/notification-settings";
+import { getNotificationPreferences } from "@/actions/notification-preferences";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -11,14 +13,13 @@ export default async function SettingsPage() {
 
   if (!user) return null;
 
-  // Get profile with type assertion
-  const { data } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
+  // Get profile and notification preferences in parallel
+  const [profileResult, notificationPreferences] = await Promise.all([
+    supabase.from("profiles").select("*").eq("id", user.id).single(),
+    getNotificationPreferences(),
+  ]);
 
-  const profile = data as Profile | null;
+  const profile = profileResult.data as Profile | null;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -62,6 +63,9 @@ export default async function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Notifications */}
+      <NotificationSettings initialPreferences={notificationPreferences} />
 
       {/* Subscription */}
       <Card>
