@@ -34,6 +34,7 @@ MyProtocolStack is a micro-SaaS for building and tracking personalized health pr
 | Database | Supabase PostgreSQL | - |
 | Auth | Supabase SSR | 0.8.0 |
 | UI Components | shadcn/ui + Radix | - |
+| Charting | Recharts | 3.5.1 |
 | Notifications | Sonner | 2.0.7 |
 | Theme | next-themes | 0.4.6 |
 | Hosting | Vercel | - |
@@ -43,7 +44,7 @@ MyProtocolStack is a micro-SaaS for building and tracking personalized health pr
 1. **Protocol Library** - 30 curated protocols
 2. **Stack Builder** - Combine protocols into routines
 3. **Daily Tracking** - Mark protocols complete
-4. **Basic Analytics** - Adherence percentages
+4. **Advanced Analytics Dashboard** - Adherence tracking, protocol completion rates, day-of-week heatmap, category breakdown
 
 ## Data Models
 
@@ -70,7 +71,10 @@ myprotocolstack/
 │   │   │   ├── new/page.tsx      # Create stack
 │   │   │   └── [id]/page.tsx     # Edit stack
 │   │   ├── today/page.tsx        # Daily tracking
-│   │   └── settings/page.tsx     # User settings
+│   │   ├── analytics/page.tsx    # Analytics dashboard (Phase 4)
+│   │   │   └── loading.tsx       # Analytics skeleton loader
+│   │   ├── settings/page.tsx     # User settings
+│   │   └── layout.tsx            # Dashboard layout w/ nav
 │   ├── layout.tsx                # Root layout
 │   └── page.tsx                  # Landing page
 │
@@ -84,19 +88,28 @@ myprotocolstack/
 │   ├── stacks/
 │   │   ├── stack-builder.tsx     # Create/edit form
 │   │   └── delete-stack-button.tsx
-│   └── tracking/
-│       └── today-view.tsx        # Daily check-in UI
+│   ├── tracking/
+│   │   └── today-view.tsx        # Daily check-in UI
+│   └── analytics/                # Phase 4: Analytics components
+│       ├── analytics-summary-cards.tsx  # 4 stat cards
+│       ├── adherence-chart.tsx          # Line chart (7/30/90 days)
+│       ├── protocol-completion-chart.tsx # Bar chart top protocols
+│       ├── day-heatmap.tsx              # Day-of-week grid
+│       ├── category-breakdown.tsx       # Category completion rates
+│       └── date-range-selector.tsx      # Date filter (7/30/90)
 │
 ├── lib/
 │   ├── supabase/
 │   │   ├── client.ts            # Browser client
 │   │   ├── server.ts            # Server client
 │   │   └── middleware.ts        # Auth middleware
+│   ├── analytics-queries.ts      # Phase 4: Server analytics functions
+│   ├── types/
+│   │   ├── analytics.ts         # Phase 4: Analytics type definitions
+│   │   └── database.ts          # Supabase types
 │   └── utils.ts                 # Helpers (cn, etc.)
 │
 ├── types/                        # TypeScript definitions
-│   └── database.ts              # Supabase types
-│
 ├── middleware.ts                 # Next.js middleware
 ├── CLAUDE.md                     # Claude instructions
 ├── README.md                     # Project overview
@@ -134,4 +147,33 @@ Using ClaudeKit Engineer with:
 
 ---
 
-**Last Review**: 2025-12-05
+## Phase 4: Analytics Dashboard (Dec 2025)
+
+**Status:** Complete
+
+**Components Added:**
+- `AnalyticsSummaryCards` - 4-card stat display (Completed, Avg Adherence, Current Streak, Best Streak)
+- `AdherenceChart` - Line chart tracking adherence % over time (7/30/90 day ranges)
+- `ProtocolCompletionChart` - Bar chart showing top 5 protocol completion rates
+- `DayHeatmap` - Grid heatmap of completion % by day-of-week
+- `CategoryBreakdown` - Category completion rates (Sleep, Focus, Energy, Fitness)
+- `DateRangeSelector` - Filter controls for 7/30/90 day periods
+
+**Server Functions (analytics-queries.ts):**
+- `getAdherenceData()` - Weekly adherence points over date range
+- `getProtocolRates()` - Per-protocol completion percentages
+- `getDayOfWeekRates()` - Day-of-week aggregation for heatmap
+- `getCategoryBreakdown()` - Category-level completion stats
+- `getAnalyticsSummary()` - Summary cards data (total, streaks)
+- `getAnalyticsData()` - Master function bundling all data
+
+**Database Index Added:**
+- `idx_tracking_user_date ON tracking(user_id, date DESC)` for query optimization
+
+**UI Updates:**
+- Analytics nav link added to dashboard header
+- Skeleton component added to packages/ui for loading states
+- Responsive grid layout: 2-col mobile → 4-col desktop for summary cards
+- Chart components use Recharts with category color scheme
+
+**Last Review**: 2025-12-09

@@ -58,6 +58,21 @@ Danger:         Red-600 (#DC2626)     - Delete, cancel
 Primary:        Blue-600 (#2563EB)    - CTAs, links
 ```
 
+### Chart & Data Visualization Colors
+```
+Category Colors (Recharts):
+  Sleep:       Blue-600 (#2563EB)     - Protocol category
+  Focus:       Purple-600 (#9333EA)   - Protocol category
+  Energy:      Orange-600 (#EA580C)   - Protocol category
+  Fitness:     Green-600 (#16A34A)    - Protocol category
+
+Chart Elements:
+  Line Chart:  Blue-500 (#3B82F6)     - Adherence trend
+  Bar Chart:   Teal-500 (#06B6D4)     - Primary data
+  Heatmap:     Green gradient          - Cool to warm intensity
+  Stats Cards: Category-matched colors - Icon backgrounds
+```
+
 ## Typography
 
 ### System Fonts
@@ -227,6 +242,7 @@ action:          Plus, Trash2, Edit, ArrowRight
 
 ### Loading
 - Skeleton screens for protocol lists
+- Skeleton cards for analytics dashboard (AnalyticsPageSkeleton component)
 - Spinner for form submission
 - Toast notifications for background tasks
 
@@ -234,6 +250,32 @@ action:          Plus, Trash2, Edit, ArrowRight
 - Clear illustration or icon
 - Helpful message: "No stacks yet. Create your first routine."
 - CTA prominent: "Create Stack" button
+
+## Analytics Components (Phase 4)
+
+### Chart Layouts
+**Summary Cards** (Mobile-First)
+- 2-col grid mobile (sm)
+- 4-col grid desktop (md+)
+- Card height: 120px, icon + metric layout
+- Icon background: semi-transparent category color
+
+**Multi-Chart Grid**
+- 1-col mobile, 2-col tablet (lg+)
+- 6px gap between cards
+- Responsive aspect ratios
+
+### Chart Typography
+- Chart title: 16px bold, heading-color
+- Axis labels: 12px, secondary-text
+- Tooltip values: 14px mono font for numbers
+- Legend: 12px regular, muted-foreground
+
+### Interactive Elements
+- Hover tooltips with date + value
+- Date range buttons: 3 states (7/30/90 days)
+- Active date range highlighted with blue underline
+- Responsive: Touch-friendly tap targets (44px min)
 
 ## Error Handling
 

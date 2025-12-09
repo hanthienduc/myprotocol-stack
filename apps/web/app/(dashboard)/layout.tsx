@@ -53,6 +53,9 @@ export default async function DashboardLayout({
               <Link href="/stacks">
                 <Button variant="ghost">My Stacks</Button>
               </Link>
+              <Link href="/analytics">
+                <Button variant="ghost">Analytics</Button>
+              </Link>
             </nav>
           </div>
 
@@ -104,6 +107,11 @@ export default async function DashboardLayout({
           <Link href="/stacks">
             <Button variant="ghost" size="sm">
               Stacks
+            </Button>
+          </Link>
+          <Link href="/analytics">
+            <Button variant="ghost" size="sm">
+              Analytics
             </Button>
           </Link>
         </div>
