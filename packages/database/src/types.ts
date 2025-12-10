@@ -239,3 +239,16 @@ export type PushSubscription = {
   user_agent: string | null;
   created_at: string;
 };
+
+// Recently viewed protocols
+export type RecentlyViewed = {
+  id: string;
+  user_id: string;
+  protocol_id: string;
+  viewed_at: string;
+};
+
+// Search result with relevance score
+export type ProtocolSearchResult = Protocol & {
+  relevance: number;
+};

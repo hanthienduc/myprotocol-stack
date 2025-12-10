@@ -1,6 +1,7 @@
 import { createClient } from "@myprotocolstack/database/server";
 import { ProtocolCard } from "@/components/protocols/protocol-card";
 import { ProtocolFilters } from "@/components/protocols/protocol-filters";
+import { RecentlyViewedProtocols } from "@/components/protocols/recently-viewed-protocols";
 import type { Protocol, ProtocolCategory, ProtocolDifficulty } from "@myprotocolstack/database";
 import {
   filterProtocols,
@@ -112,6 +113,15 @@ export default async function ProtocolsPage({ searchParams }: ProtocolsPageProps
       </div>
 
       <ProtocolFilters totalCount={totalCount} filteredCount={filteredCount} />
+
+      {/* Recently Viewed - only show when no filters active */}
+      {!filters.query && !filters.categories?.length && !filters.difficulty &&
+       !filters.minDuration && !filters.maxDuration && !filters.favorites && (
+        <RecentlyViewedProtocols
+          allProtocols={allProtocols}
+          favoriteIds={favoriteIds}
+        />
+      )}
 
       {singleCategory ? (
         // Single category view

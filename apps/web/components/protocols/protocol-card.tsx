@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@myprotocolstack/ui";
 import { Badge } from "@myprotocolstack/ui";
 import { Button } from "@myprotocolstack/ui";
@@ -14,6 +14,7 @@ import {
 } from "@myprotocolstack/ui";
 import type { Protocol } from "@myprotocolstack/database";
 import { FavoriteButton } from "./favorite-button";
+import { trackProtocolView } from "./recently-viewed-protocols";
 
 interface ProtocolCardProps {
   protocol: Protocol;
@@ -42,6 +43,13 @@ export function ProtocolCard({
   isFavorite = false,
 }: ProtocolCardProps) {
   const [open, setOpen] = useState(false);
+
+  // Track view when dialog opens
+  useEffect(() => {
+    if (open) {
+      trackProtocolView(protocol.id);
+    }
+  }, [open, protocol.id]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
