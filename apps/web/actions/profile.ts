@@ -264,8 +264,9 @@ export async function getPublicProfile(username: string) {
 }
 
 export async function incrementStackViewCount(stackId: string) {
-  const supabase = await createClient();
-  await supabase.rpc("increment_view_count", { stack_id: stackId });
+  // Use admin client - the RPC function has SECURITY DEFINER but we bypass RLS for consistency
+  const supabase = createAdminClient();
+  await supabase.rpc("increment_view_count", { p_stack_id: stackId });
 }
 
 export async function getProfileForSettings() {

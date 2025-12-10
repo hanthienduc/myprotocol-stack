@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getPublicProfile } from "@/actions/profile";
+import { getPublicProfile, incrementStackViewCount } from "@/actions/profile";
 import { PublicProfile } from "@/components/profile/public-profile";
 import { StructuredData } from "@/components/seo/structured-data";
 
@@ -41,6 +41,13 @@ export default async function ProfilePage({ params }: Props) {
   const data = await getPublicProfile(username);
 
   if (!data) notFound();
+
+  // Increment view count for all displayed stacks (fire and forget)
+  data.stacks.forEach((stack) => {
+    incrementStackViewCount(stack.id).catch(() => {
+      // Silently fail - view count is not critical
+    });
+  });
 
   const baseUrl =
     process.env.NEXT_PUBLIC_APP_URL || "https://myprotocolstack.com";
