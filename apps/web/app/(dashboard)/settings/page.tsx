@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@mypr
 import { Badge } from "@myprotocolstack/ui";
 import type { Profile } from "@myprotocolstack/database";
 import { NotificationSettings } from "@/components/settings/notification-settings";
+import { RetakeQuizSettings } from "@/components/settings/retake-quiz-settings";
 import { getNotificationPreferences } from "@/actions/notification-preferences";
 
 export default async function SettingsPage() {
@@ -63,6 +64,9 @@ export default async function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Protocol Preferences / Retake Quiz */}
+      <RetakeQuizSettings />
 
       {/* Notifications */}
       <NotificationSettings initialPreferences={notificationPreferences} />

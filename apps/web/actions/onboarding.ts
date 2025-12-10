@@ -113,3 +113,37 @@ export async function completeOnboarding(
 function capitalize(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
+
+export async function resetOnboarding(): Promise<ActionResult> {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        onboarding_completed: false,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", user.id);
+
+    if (error) {
+      console.error("Reset onboarding error:", error);
+      return { success: false, error: "Failed to reset onboarding" };
+    }
+
+    revalidatePath("/settings");
+    revalidatePath("/onboarding");
+
+    return { success: true };
+  } catch (error) {
+    console.error("Reset onboarding error:", error);
+    return { success: false, error: "Something went wrong" };
+  }
+}
