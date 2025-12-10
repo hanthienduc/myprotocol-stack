@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Search, X } from "lucide-react";
 import { Input } from "@myprotocolstack/ui";
@@ -14,25 +14,31 @@ export function ProtocolSearch({ className }: ProtocolSearchProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("search") || "");
+  const searchParamsRef = useRef(searchParams);
 
-  // Update URL with debounce
-  const updateUrl = useCallback((value: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (value.trim()) {
-      params.set("search", value.trim());
-    } else {
-      params.delete("search");
-    }
-    router.push(`/protocols?${params.toString()}`);
-  }, [router, searchParams]);
-
-  // Debounced search effect
+  // Keep ref updated
   useEffect(() => {
+    searchParamsRef.current = searchParams;
+  }, [searchParams]);
+
+  // Debounced search effect - only depends on query
+  useEffect(() => {
+    const urlSearch = searchParamsRef.current.get("search") || "";
+    // Skip if query matches URL (no change needed)
+    if (query === urlSearch) return;
+
     const timer = setTimeout(() => {
-      updateUrl(query);
+      const params = new URLSearchParams(searchParamsRef.current.toString());
+      if (query.trim()) {
+        params.set("search", query.trim());
+      } else {
+        params.delete("search");
+      }
+      router.push(`/protocols?${params.toString()}`);
     }, 300);
+
     return () => clearTimeout(timer);
-  }, [query, updateUrl]);
+  }, [query, router]);
 
   // Sync with URL changes (e.g., when cleared externally via "Clear all" button)
   useEffect(() => {
