@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@myprotocolstack/ui";
 import "@myprotocolstack/ui/globals.css";
+import { StructuredData } from "@/components/seo/structured-data";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,18 +14,70 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteUrl =
+  process.env.NEXT_PUBLIC_APP_URL || "https://myprotocolstack.com";
+
 export const metadata: Metadata = {
-  title: "MyProtocolStack - Build Your Health Protocol",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "MyProtocolStack - Build Science-Backed Health Protocols",
+    template: "%s | MyProtocolStack",
+  },
   description:
-    "Build and track personalized health protocols based on science. Combine sleep, focus, energy, and fitness protocols into daily routines.",
+    "Build and track personalized health protocols. Browse 30+ curated protocols, create custom stacks, track adherence.",
   keywords: [
     "health protocols",
     "biohacking",
-    "sleep optimization",
-    "focus",
-    "productivity",
     "habit tracking",
+    "sleep optimization",
+    "productivity",
+    "focus",
+    "energy",
+    "fitness",
   ],
+  authors: [{ name: "MyProtocolStack" }],
+  creator: "MyProtocolStack",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: siteUrl,
+    siteName: "MyProtocolStack",
+    title: "MyProtocolStack - Build Science-Backed Health Protocols",
+    description: "Build and track personalized health protocols based on science.",
+    images: [
+      {
+        url: "/opengraph-image.png",
+        width: 1200,
+        height: 630,
+        alt: "MyProtocolStack",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "MyProtocolStack",
+    description: "Build and track personalized health protocols.",
+    creator: "@MyProtocolStack",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true },
+  },
+};
+
+const organizationSchema = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "MyProtocolStack",
+  url: siteUrl,
+  logo: `${siteUrl}/logo.png`,
+  sameAs: ["https://twitter.com/MyProtocolStack"],
+  contactPoint: {
+    "@type": "ContactPoint",
+    contactType: "Support",
+    email: "support@myprotocolstack.com",
+  },
 };
 
 export default function RootLayout({
@@ -37,6 +90,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen`}
       >
+        <StructuredData data={organizationSchema} />
         {children}
         <Toaster />
       </body>
