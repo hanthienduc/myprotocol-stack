@@ -775,6 +775,6 @@ const profileUrls = (publicProfiles || []).map((p) => ({
 
 ## Next Steps
 1. ~~Add stack visibility toggle in stack editor~~ ✅ Done
-2. Consider "Clone Stack" feature from public profiles
-3. Add report/flag mechanism for inappropriate content
-4. Featured profiles section on landing page
+2. ~~Clone Stack feature from public profiles~~ ✅ Done
+3. ~~Report/flag mechanism for inappropriate content~~ ✅ Done
+4. ~~Featured profiles section on landing page~~ ✅ Done
