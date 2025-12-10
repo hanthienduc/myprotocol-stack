@@ -11,8 +11,9 @@
 | Date | 251210 |
 | Description | Optional public profiles with shareable stack collections |
 | Priority | P2 |
-| Implementation Status | Not Started |
-| Review Status | Draft |
+| Implementation Status | ✅ Complete |
+| Review Status | REVIEWED - All Issues Fixed |
+| Review Report | [reports/code-reviewer-251210-phase05-public-profiles.md](./reports/code-reviewer-251210-phase05-public-profiles.md) |
 
 ## Key Insights
 - Public profiles drive organic discovery (SEO)
@@ -735,16 +736,16 @@ const profileUrls = (publicProfiles || []).map((p) => ({
 ```
 
 ## Todo List
-- [ ] Create migration for profile/stack columns
-- [ ] Create `actions/profile.ts` server actions
-- [ ] Create `app/profile/[username]/page.tsx`
-- [ ] Create `components/profile/public-profile.tsx`
-- [ ] Create `components/settings/privacy-settings.tsx`
-- [ ] Add PrivacySettings to settings page
-- [ ] Create view count RPC function
-- [ ] Update sitemap with public profiles
-- [ ] Add stack visibility toggle in stack editor
-- [ ] Test public profile accessibility
+- [x] Create migration for profile/stack columns
+- [x] Create `actions/profile.ts` server actions
+- [x] Create `app/profile/[username]/page.tsx`
+- [x] Create `components/profile/public-profile.tsx`
+- [x] Create `components/settings/privacy-settings.tsx`
+- [x] Add PrivacySettings to settings page
+- [x] Create view count RPC function
+- [x] Update sitemap with public profiles
+- [x] Add stack visibility toggle in stack editor
+- [x] Test public profile accessibility
 
 ## Success Criteria
 - Users can set username and make profile public
@@ -762,13 +763,18 @@ const profileUrls = (publicProfiles || []).map((p) => ({
 | Privacy leaks | Low | High | RLS policies, visibility checks |
 
 ## Security Considerations
-- RLS ensures only public profiles/stacks visible
-- Username validation prevents injection
-- No PII exposed beyond user's choice
-- View counts don't reveal viewer identity
+- [x] RLS ensures only public profiles/stacks visible (admin client + explicit is_public filter)
+- [x] Username validation prevents injection (server-side regex)
+- [x] No PII exposed beyond user's choice
+- [x] View counts don't reveal viewer identity (anonymous RPC)
+- [x] XSS via URL prevented (protocol whitelist: http/https only)
+- [x] Twitter handle validated server-side (1-15 alphanumeric + underscore)
+- [x] Race condition in useEffect fixed (AbortController)
+- [x] TOCTOU prevented (DB UNIQUE constraint + error code 23505)
+- [x] Bio length enforced server-side (MAX_BIO_LENGTH = 200)
 
 ## Next Steps
-1. Add stack visibility toggle in stack editor
+1. ~~Add stack visibility toggle in stack editor~~ ✅ Done
 2. Consider "Clone Stack" feature from public profiles
 3. Add report/flag mechanism for inappropriate content
 4. Featured profiles section on landing page
