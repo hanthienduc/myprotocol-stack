@@ -34,13 +34,16 @@ export function ProtocolSearch({ className }: ProtocolSearchProps) {
     return () => clearTimeout(timer);
   }, [query, updateUrl]);
 
-  // Sync with URL changes (e.g., when cleared externally)
+  // Sync with URL changes (e.g., when cleared externally via "Clear all" button)
   useEffect(() => {
     const urlSearch = searchParams.get("search") || "";
-    if (urlSearch !== query && !query) {
+    // Only sync from URL to state when URL changes and input is not focused
+    // This prevents overwriting user input during typing
+    if (urlSearch !== query && document.activeElement?.tagName !== "INPUT") {
       setQuery(urlSearch);
     }
-  }, [searchParams, query]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const handleClear = () => {
     setQuery("");
