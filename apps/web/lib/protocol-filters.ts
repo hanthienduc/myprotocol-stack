@@ -6,8 +6,23 @@ export interface ProtocolFilters {
   difficulty?: ProtocolDifficulty;
   minDuration?: number;
   maxDuration?: number;
+  tags?: string[];
   favorites?: boolean;
 }
+
+// Common protocol tags
+export const PROTOCOL_TAGS = [
+  "morning",
+  "evening",
+  "quick",
+  "science-backed",
+  "beginner-friendly",
+  "advanced",
+  "no-equipment",
+  "outdoor",
+] as const;
+
+export type ProtocolTag = typeof PROTOCOL_TAGS[number];
 
 export type SortField = "name" | "difficulty" | "duration";
 export type SortOrder = "asc" | "desc";
@@ -76,6 +91,14 @@ export function filterProtocols(
       }
     }
 
+    // Tags filter (protocol must have ALL selected tags)
+    if (filters.tags && filters.tags.length > 0) {
+      const protocolTags = p.tags || [];
+      if (!filters.tags.every((tag) => protocolTags.includes(tag))) {
+        return false;
+      }
+    }
+
     // Favorites filter
     if (filters.favorites && favoriteIds) {
       if (!favoriteIds.includes(p.id)) {
@@ -128,6 +151,7 @@ export function countActiveFilters(filters: ProtocolFilters): number {
   if (filters.categories && filters.categories.length > 0) count++;
   if (filters.difficulty) count++;
   if (filters.minDuration !== undefined || filters.maxDuration !== undefined) count++;
+  if (filters.tags && filters.tags.length > 0) count++;
   if (filters.favorites) count++;
   return count;
 }
@@ -156,6 +180,11 @@ export function parseFiltersFromParams(params: URLSearchParams): ProtocolFilters
 
   const maxDuration = params.get("maxDuration");
   if (maxDuration) filters.maxDuration = parseInt(maxDuration, 10);
+
+  const tags = params.get("tags");
+  if (tags) {
+    filters.tags = tags.split(",");
+  }
 
   const favorites = params.get("favorites");
   if (favorites === "true") filters.favorites = true;
@@ -192,6 +221,7 @@ export function buildParamsFromFilters(
   if (filters.difficulty) params.set("difficulty", filters.difficulty);
   if (filters.minDuration !== undefined) params.set("minDuration", String(filters.minDuration));
   if (filters.maxDuration !== undefined) params.set("maxDuration", String(filters.maxDuration));
+  if (filters.tags?.length) params.set("tags", filters.tags.join(","));
   if (filters.favorites) params.set("favorites", "true");
 
   if (sort && sort.field !== "name") {

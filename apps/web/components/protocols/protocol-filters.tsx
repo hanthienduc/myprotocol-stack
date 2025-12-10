@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Heart, Filter, X, ChevronDown } from "lucide-react";
+import { Heart, Filter, X, ChevronDown, Tag } from "lucide-react";
 import { Button } from "@myprotocolstack/ui";
 import { Checkbox } from "@myprotocolstack/ui";
 import { Badge } from "@myprotocolstack/ui";
@@ -24,11 +24,13 @@ import {
 import { cn } from "@myprotocolstack/utils";
 import type { ProtocolCategory, ProtocolDifficulty } from "@myprotocolstack/database";
 import { ProtocolSearch } from "./protocol-search";
+import { SavedFilterPresets } from "./saved-filter-presets";
 import {
   type ProtocolFilters as FilterType,
   type SortField,
   type SortOrder,
   DURATION_PRESETS,
+  PROTOCOL_TAGS,
   countActiveFilters,
 } from "@/lib/protocol-filters";
 
@@ -66,6 +68,7 @@ export function ProtocolFilters({ totalCount, filteredCount }: ProtocolFiltersPr
   // Parse current filters from URL
   const currentFilters = useMemo((): FilterType => {
     const categories = searchParams.get("categories");
+    const tags = searchParams.get("tags");
     return {
       query: searchParams.get("search") || undefined,
       categories: categories ? (categories.split(",") as ProtocolCategory[]) : undefined,
@@ -76,6 +79,7 @@ export function ProtocolFilters({ totalCount, filteredCount }: ProtocolFiltersPr
       maxDuration: searchParams.get("maxDuration")
         ? parseInt(searchParams.get("maxDuration")!, 10)
         : undefined,
+      tags: tags ? tags.split(",") : undefined,
       favorites: searchParams.get("favorites") === "true",
     };
   }, [searchParams]);
@@ -137,6 +141,20 @@ export function ProtocolFilters({ totalCount, filteredCount }: ProtocolFiltersPr
       });
     },
     [updateParams]
+  );
+
+  // Tag toggle
+  const toggleTag = useCallback(
+    (tag: string) => {
+      const current = currentFilters.tags || [];
+      const updated = current.includes(tag)
+        ? current.filter((t) => t !== tag)
+        : [...current, tag];
+      updateParams({
+        tags: updated.length > 0 ? updated.join(",") : null,
+      });
+    },
+    [currentFilters.tags, updateParams]
   );
 
   // Favorites toggle
@@ -235,6 +253,28 @@ export function ProtocolFilters({ totalCount, filteredCount }: ProtocolFiltersPr
               aria-pressed={activeDurationPreset === idx}
             >
               {preset.label}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tags */}
+      <div>
+        <h4 className="font-medium mb-3 text-sm flex items-center gap-1">
+          <Tag className="h-4 w-4" />
+          Tags
+        </h4>
+        <div className="flex flex-wrap gap-2">
+          {PROTOCOL_TAGS.map((tag) => (
+            <Button
+              key={tag}
+              variant={currentFilters.tags?.includes(tag) ? "default" : "outline"}
+              size="sm"
+              onClick={() => toggleTag(tag)}
+              aria-pressed={currentFilters.tags?.includes(tag)}
+              className="text-xs"
+            >
+              {tag}
             </Button>
           ))}
         </div>
@@ -341,8 +381,9 @@ export function ProtocolFilters({ totalCount, filteredCount }: ProtocolFiltersPr
           </DropdownMenu>
         </div>
 
-        {/* Desktop: Sort dropdown */}
+        {/* Desktop: Sort dropdown + Saved Presets */}
         <div className="hidden sm:flex items-center gap-2">
+          <SavedFilterPresets currentFilters={currentFilters} />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="min-w-[180px] justify-between">

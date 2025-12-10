@@ -15,9 +15,11 @@ import {
 import type { Protocol } from "@myprotocolstack/database";
 import { FavoriteButton } from "./favorite-button";
 import { trackProtocolView } from "./recently-viewed-protocols";
+import { SimilarProtocols } from "./similar-protocols";
 
 interface ProtocolCardProps {
   protocol: Protocol;
+  allProtocols?: Protocol[];
   onAddToStack?: (protocol: Protocol) => void;
   showAddButton?: boolean;
   isFavorite?: boolean;
@@ -38,6 +40,7 @@ const difficultyColors: Record<string, string> = {
 
 export function ProtocolCard({
   protocol,
+  allProtocols = [],
   onAddToStack,
   showAddButton = false,
   isFavorite = false,
@@ -112,6 +115,17 @@ export function ProtocolCard({
             <Badge variant="outline">{protocol.frequency}</Badge>
           </div>
 
+          {/* Tags */}
+          {protocol.tags && protocol.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {protocol.tags.map((tag) => (
+                <Badge key={tag} variant="secondary" className="text-xs">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          )}
+
           {/* Science summary */}
           {protocol.science_summary && (
             <div>
@@ -145,6 +159,17 @@ export function ProtocolCard({
             >
               Add to Stack
             </Button>
+          )}
+
+          {/* Similar Protocols */}
+          {allProtocols.length > 0 && (
+            <SimilarProtocols
+              protocolId={protocol.id}
+              category={protocol.category}
+              difficulty={protocol.difficulty}
+              tags={protocol.tags}
+              allProtocols={allProtocols}
+            />
           )}
         </div>
       </DialogContent>

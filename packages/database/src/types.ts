@@ -28,6 +28,7 @@ export type Database = {
           frequency: "daily" | "weekly";
           science_summary: string | null;
           steps: string[];
+          tags: string[];
           created_at: string;
         };
         Insert: {
@@ -40,6 +41,7 @@ export type Database = {
           frequency?: "daily" | "weekly";
           science_summary?: string | null;
           steps?: string[];
+          tags?: string[];
           created_at?: string;
         };
         Update: {
@@ -52,6 +54,7 @@ export type Database = {
           frequency?: "daily" | "weekly";
           science_summary?: string | null;
           steps?: string[];
+          tags?: string[];
           created_at?: string;
         };
       };
@@ -251,4 +254,30 @@ export type RecentlyViewed = {
 // Search result with relevance score
 export type ProtocolSearchResult = Protocol & {
   relevance: number;
+};
+
+// Saved filter presets
+export type SavedFilterPreset = {
+  id: string;
+  user_id: string;
+  name: string;
+  filters: {
+    query?: string;
+    categories?: string[];
+    difficulty?: string;
+    minDuration?: number;
+    maxDuration?: number;
+    tags?: string[];
+    favorites?: boolean;
+  };
+  sort_field?: string;
+  sort_order?: string;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+// Similar protocol result
+export type SimilarProtocol = Protocol & {
+  similarity_score: number;
 };

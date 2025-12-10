@@ -19,6 +19,7 @@ interface ProtocolsPageProps {
     difficulty?: ProtocolDifficulty;
     minDuration?: string;
     maxDuration?: string;
+    tags?: string;
     favorites?: string;
     sort?: SortField;
     order?: SortOrder;
@@ -64,6 +65,7 @@ export default async function ProtocolsPage({ searchParams }: ProtocolsPageProps
     difficulty: params.difficulty,
     minDuration: params.minDuration ? parseInt(params.minDuration, 10) : undefined,
     maxDuration: params.maxDuration ? parseInt(params.maxDuration, 10) : undefined,
+    tags: params.tags ? params.tags.split(",") : undefined,
     favorites: params.favorites === "true",
   };
 
@@ -116,7 +118,7 @@ export default async function ProtocolsPage({ searchParams }: ProtocolsPageProps
 
       {/* Recently Viewed - only show when no filters active */}
       {!filters.query && !filters.categories?.length && !filters.difficulty &&
-       !filters.minDuration && !filters.maxDuration && !filters.favorites && (
+       !filters.minDuration && !filters.maxDuration && !filters.tags?.length && !filters.favorites && (
         <RecentlyViewedProtocols
           allProtocols={allProtocols}
           favoriteIds={favoriteIds}
@@ -137,6 +139,7 @@ export default async function ProtocolsPage({ searchParams }: ProtocolsPageProps
               <ProtocolCard
                 key={protocol.id}
                 protocol={protocol}
+                allProtocols={allProtocols}
                 isFavorite={favoriteIds.includes(protocol.id)}
               />
             ))}
@@ -161,6 +164,7 @@ export default async function ProtocolsPage({ searchParams }: ProtocolsPageProps
                   <ProtocolCard
                     key={protocol.id}
                     protocol={protocol}
+                    allProtocols={allProtocols}
                     isFavorite={favoriteIds.includes(protocol.id)}
                   />
                 ))}
