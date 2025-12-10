@@ -175,9 +175,13 @@ export function TodayView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run once on mount
 
-  // Calculate overall progress
+  // Calculate overall progress - only count protocols that are in current stacks
   const totalProtocols = stacks.reduce((acc, s) => acc + s.protocol_ids.length, 0);
-  const completedProtocols = Object.values(localTracking).filter(Boolean).length;
+  const completedProtocols = stacks.reduce((acc, stack) => {
+    return acc + stack.protocol_ids.filter(
+      (pId) => localTracking[`${stack.id}-${pId}`]
+    ).length;
+  }, 0);
   const progressPercent = totalProtocols > 0 ? (completedProtocols / totalProtocols) * 100 : 0;
 
   // Get streak data for a stack
