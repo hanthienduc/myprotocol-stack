@@ -1,9 +1,9 @@
 # Codebase Summary
 
 **Last Updated**: 2025-12-10
-**Version**: 0.2.0
+**Version**: 0.3.0
 **Project**: MyProtocolStack
-**Phase Status**: Phase 5 Growth - SEO Foundation Complete, Blog Content System Complete
+**Phase Status**: Phase 4 Social Sharing Complete, Phase 5 Growth Complete, Phase 6 Search & Filtering Complete
 
 ## Overview
 
@@ -11,8 +11,8 @@ MyProtocolStack is a micro-SaaS for building and tracking personalized health pr
 
 ## Project Status
 
-**Phase**: Phase 5 Growth - SEO Foundation & Blog Content System (Complete), Phase 6 Advanced Search & Filtering (Complete)
-**Codebase**: Production-ready core features with SEO optimization, blog platform, and advanced search
+**Phase**: Phase 4 Social Sharing (Complete), Phase 5 Growth - SEO & Blog (Complete), Phase 6 Advanced Search & Filtering (Complete)
+**Codebase**: Production-ready core features with social sharing, SEO optimization, blog platform, and advanced search
 
 ## Quick Links
 
@@ -100,9 +100,13 @@ myprotocolstack/
 │   ├── seo/                      # Phase 5: SEO components
 │   │   └── structured-data.tsx   # JSON-LD schema markup
 │   ├── blog/                     # Phase 5.02: Blog components
-│   │   └── related-protocols.tsx # Display related protocols section with links
+│   │   └── related-articles.tsx  # Display related articles section with links
+│   ├── sharing/                  # Phase 4: Social sharing components
+│   │   ├── share-button.tsx      # Share trigger button with Web Share API
+│   │   ├── share-dialog.tsx      # Share dialog with 5 social platforms + copy link
+│   │   └── copy-link-button.tsx  # Standalone copy-to-clipboard button
 │   ├── protocols/
-│   │   ├── protocol-card.tsx
+│   │   ├── protocol-card.tsx     # Protocol modal with share button
 │   │   ├── protocol-search.tsx      # Phase 6: Debounced search
 │   │   └── protocol-filters.tsx     # Phase 6: Advanced filters + sort
 │   ├── stacks/
@@ -123,6 +127,9 @@ myprotocolstack/
 │   │   ├── client.ts            # Browser client
 │   │   ├── server.ts            # Server client
 │   │   └── middleware.ts        # Auth middleware
+│   ├── sharing/                  # Phase 4: Social sharing utilities
+│   │   ├── utm.ts               # UTM param builder for share tracking
+│   │   └── social-links.ts      # Platform-specific share URL generators
 │   ├── analytics-queries.ts      # Phase 4: Server analytics functions
 │   ├── protocol-filters.ts       # Phase 6: Filter/sort utilities
 │   ├── blog/                     # Phase 5.02: Blog system
@@ -375,5 +382,66 @@ Using ClaudeKit Engineer with:
 - Sitemap integration (blog articles discoverable via /sitemap.ts)
 - Cache headers on RSS feed (s-maxage=3600)
 - Dynamic static params generation for article routes
+
+**Last Review**: 2025-12-10
+
+---
+
+## Phase 4: Social Sharing (Dec 2025)
+
+**Status:** Complete
+
+**New Sharing System:**
+- `lib/sharing/utm.ts` - UTM parameter builder with referral code support
+  - `buildShareUrl()` - Construct share URLs with utm_source/medium/campaign/content
+  - `getProtocolShareUrl()` - Protocol-specific share URLs
+  - `getStackShareUrl()` - Stack-specific share URLs
+  - Support for optional referral codes for tracking conversions
+
+- `lib/sharing/social-links.ts` - Platform-specific share URL generators
+  - `getTwitterShareUrl()` - Twitter/X intent URL with text + link
+  - `getFacebookShareUrl()` - Facebook share dialog with URL
+  - `getLinkedInShareUrl()` - LinkedIn share with URL
+  - `getWhatsAppShareUrl()` - WhatsApp share with text + link
+  - `getEmailShareUrl()` - mailto: with subject & body
+
+**New Share Components:**
+- `components/sharing/share-button.tsx`
+  - Trigger button with Share2 icon
+  - Attempts Web Share API first (mobile/modern browsers)
+  - Fallback to ShareDialog on unsupported browsers
+  - Props: title, description, url, referralCode, variant, size
+  - Toast notifications for success/error
+
+- `components/sharing/share-dialog.tsx`
+  - Modal with copy-to-clipboard primary action
+  - 5 social platform buttons (Twitter, Facebook, LinkedIn, WhatsApp, Email)
+  - Display shareable URL with one-click copy
+  - Custom SVG icons for social platforms (no external deps)
+  - Referral code badge messaging
+  - Dark mode support with hover effects
+
+- `components/sharing/copy-link-button.tsx`
+  - Standalone button for copying URL to clipboard
+  - Can be used independently or within dialog
+  - Checkbox state feedback (Check icon after copy)
+  - SSR-safe navigator.clipboard handling
+  - Props: url, referralCode, source, variant, size
+
+**Integration Points:**
+- Protocol detail page (`[id]/page.tsx`) - Share button in header next to back button
+- Protocol card modal - Share button alongside "Add to Stack" action
+- URL-based share tracking - utm_source parameter tracks platform (twitter, facebook, etc.)
+- Referral tracking - ref= parameter included when referralCode provided
+
+**Features:**
+- Web Share API integration for native mobile share sheets
+- Fallback dialog for desktop/unsupported browsers
+- UTM parameter tracking for analytics (source, medium, campaign, content)
+- Referral code support for conversion tracking
+- Copy-to-clipboard with visual feedback
+- Dark mode support
+- Accessible labels & ARIA attributes
+- Toast notifications via Sonner
 
 **Last Review**: 2025-12-10

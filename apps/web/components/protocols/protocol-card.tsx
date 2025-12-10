@@ -16,6 +16,7 @@ import type { Protocol } from "@myprotocolstack/database";
 import { FavoriteButton } from "./favorite-button";
 import { trackProtocolView } from "./recently-viewed-protocols";
 import { SimilarProtocols } from "./similar-protocols";
+import { ShareButton } from "@/components/sharing/share-button";
 
 interface ProtocolCardProps {
   protocol: Protocol;
@@ -148,18 +149,28 @@ export function ProtocolCard({
             </div>
           )}
 
-          {/* Add to stack button */}
-          {showAddButton && onAddToStack && (
-            <Button
-              className="w-full mt-4"
-              onClick={() => {
-                onAddToStack(protocol);
-                setOpen(false);
-              }}
-            >
-              Add to Stack
-            </Button>
-          )}
+          {/* Actions */}
+          <div className="flex gap-2 mt-4">
+            {showAddButton && onAddToStack && (
+              <Button
+                className="flex-1"
+                onClick={() => {
+                  onAddToStack(protocol);
+                  setOpen(false);
+                }}
+              >
+                Add to Stack
+              </Button>
+            )}
+            <ShareButton
+              title={protocol.name}
+              description={protocol.description || "Science-backed health protocol"}
+              url={`/protocols/${protocol.id}`}
+              variant="outline"
+              size={showAddButton ? "icon" : "default"}
+              showLabel={!showAddButton}
+            />
+          </div>
 
           {/* Similar Protocols */}
           {allProtocols.length > 0 && (

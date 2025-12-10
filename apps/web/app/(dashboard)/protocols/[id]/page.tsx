@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { StructuredData } from "@/components/seo/structured-data";
 import { RelatedArticles } from "@/components/blog/related-articles";
+import { ShareButton } from "@/components/sharing/share-button";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -90,13 +91,19 @@ export default async function ProtocolDetailPage({ params }: Props) {
     <div className="space-y-6">
       <StructuredData data={protocolSchema} />
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between gap-4">
         <Link href="/protocols">
           <Button variant="ghost" size="sm">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Protocols
           </Button>
         </Link>
+        <ShareButton
+          title={`${protocol.name} | MyProtocolStack`}
+          description={protocol.description || "Science-backed health protocol"}
+          url={`${baseUrl}/protocols/${id}`}
+          size="sm"
+        />
       </div>
 
       <Card>
