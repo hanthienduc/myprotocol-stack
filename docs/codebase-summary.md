@@ -1,9 +1,9 @@
 # Codebase Summary
 
 **Last Updated**: 2025-12-10
-**Version**: 0.1.1
+**Version**: 0.2.0
 **Project**: MyProtocolStack
-**Phase Status**: Phase 5 Growth - SEO Foundation Complete
+**Phase Status**: Phase 5 Growth - SEO Foundation Complete, Blog Content System Complete
 
 ## Overview
 
@@ -11,8 +11,8 @@ MyProtocolStack is a micro-SaaS for building and tracking personalized health pr
 
 ## Project Status
 
-**Phase**: Phase 5 Growth - SEO Foundation (Complete), Phase 6 Advanced Search & Filtering (Complete)
-**Codebase**: Production-ready core features with SEO optimization and advanced search
+**Phase**: Phase 5 Growth - SEO Foundation & Blog Content System (Complete), Phase 6 Advanced Search & Filtering (Complete)
+**Codebase**: Production-ready core features with SEO optimization, blog platform, and advanced search
 
 ## Quick Links
 
@@ -80,6 +80,12 @@ myprotocolstack/
 │   │   │   └── loading.tsx       # Analytics skeleton loader
 │   │   ├── settings/page.tsx     # User settings
 │   │   └── layout.tsx            # Dashboard layout w/ nav
+│   ├── blog/                     # Phase 5.02: Blog content system
+│   │   ├── page.tsx              # Blog list (title, excerpt, category, date, reading time)
+│   │   ├── [slug]/
+│   │   │   └── page.tsx          # Individual article with structured data (Article schema)
+│   │   └── feed.xml/
+│   │       └── route.ts          # RSS feed with all articles
 │   ├── layout.tsx                # Root layout + metadata, Organization schema
 │   ├── sitemap.ts                # Phase 5: Dynamic sitemap generation
 │   ├── robots.ts                 # Phase 5: Robots.txt configuration
@@ -93,6 +99,8 @@ myprotocolstack/
 │   │   └── sign-out-button.tsx
 │   ├── seo/                      # Phase 5: SEO components
 │   │   └── structured-data.tsx   # JSON-LD schema markup
+│   ├── blog/                     # Phase 5.02: Blog components
+│   │   └── related-protocols.tsx # Display related protocols section with links
 │   ├── protocols/
 │   │   ├── protocol-card.tsx
 │   │   ├── protocol-search.tsx      # Phase 6: Debounced search
@@ -117,12 +125,26 @@ myprotocolstack/
 │   │   └── middleware.ts        # Auth middleware
 │   ├── analytics-queries.ts      # Phase 4: Server analytics functions
 │   ├── protocol-filters.ts       # Phase 6: Filter/sort utilities
+│   ├── blog/                     # Phase 5.02: Blog system
+│   │   ├── articles.ts          # Article fetching with Zod validation
+│   │   └── category-colors.ts   # Category color mapping
 │   ├── __tests__/
 │   │   └── protocol-filters.test.ts  # Phase 6: 34 filter tests
 │   ├── types/
 │   │   ├── analytics.ts         # Phase 4: Analytics type definitions
 │   │   └── database.ts          # Supabase types
 │   └── utils.ts                 # Helpers (cn, etc.)
+│
+├── content/
+│   └── blog/                     # Phase 5.02: Blog article MDX files
+│       ├── morning-sunlight-science.mdx
+│       ├── deep-work-focus-blocks.mdx
+│       ├── intermittent-fasting-guide.mdx
+│       ├── zone-2-cardio-guide.mdx
+│       ├── cold-exposure-benefits.mdx
+│       ├── sleep-temperature-optimization.mdx
+│       ├── blood-sugar-stable-energy.mdx
+│       └── resistance-training-essentials.mdx
 │
 ├── types/                        # TypeScript definitions
 ├── middleware.ts                 # Next.js middleware
@@ -295,5 +317,63 @@ Using ClaudeKit Engineer with:
 - Disallow private/admin routes: /api/, /auth/, /today/, /settings/, /analytics/, /onboarding/
 - Block AI training bots: GPTBot, ChatGPT-User
 - Sitemap reference included
+
+**Last Review**: 2025-12-10
+
+---
+
+## Phase 5.02: Growth - Blog Content System (Dec 2025)
+
+**Status:** Complete
+
+**New Blog System:**
+- `lib/blog/articles.ts` - Article fetching & parsing with Zod validation (articleFrontmatterSchema)
+- `lib/blog/category-colors.ts` - Category-to-color mapping (sleep/focus/energy/fitness)
+- `content/blog/*.mdx` - 8 foundational blog articles covering all protocol categories
+  - Morning sunlight science (Sleep)
+  - Deep work focus blocks (Focus)
+  - Intermittent fasting guide (Energy)
+  - Zone 2 cardio guide (Fitness)
+  - Cold exposure benefits (Fitness)
+  - Sleep temperature optimization (Sleep)
+  - Blood sugar stable energy (Energy)
+  - Resistance training essentials (Fitness)
+
+**New Blog Routes:**
+- `app/blog/page.tsx` - Blog landing page with article listings (category badges, publish date, reading time)
+- `app/blog/[slug]/page.tsx` - Individual article pages with:
+  - Dynamic metadata generation (title, description, OpenGraph, Twitter cards)
+  - Article schema structured data (schema.org/Article)
+  - MDX content rendering with syntax highlighting
+  - Related protocols section (links to relevant protocol pages)
+  - Category badge and author attribution
+- `app/blog/feed.xml/route.ts` - RSS 2.0 feed endpoint with all articles
+
+**Article Frontmatter Schema:**
+- title: required string
+- description: required string
+- date: required YYYY-MM-DD format
+- category: sleep/focus/energy/fitness/general
+- author: required string
+- readingTime: optional (e.g., "5 min read")
+- relatedProtocols: optional array of protocol slugs
+- image: optional URL for social sharing
+
+**Features:**
+- Static blog page generation (revalidate every hour)
+- Server-side article parsing with gray-matter
+- Zod validation for article metadata
+- RSS feed with proper XML formatting (CDATA for special chars)
+- Category-based color coding (inherited from design system)
+- Related protocols component for internal linking
+- OpenGraph & Twitter card support for social sharing
+- Article schema JSON-LD for search engines
+
+**SEO & Accessibility:**
+- Blog RSS link in blog page header
+- Alt text & metadata in RSS feed
+- Sitemap integration (blog articles discoverable via /sitemap.ts)
+- Cache headers on RSS feed (s-maxage=3600)
+- Dynamic static params generation for article routes
 
 **Last Review**: 2025-12-10

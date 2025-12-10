@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { createClient } from "@myprotocolstack/database/server";
+import { getAllArticles } from "@/lib/blog/articles";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
+  // Fetch all blog articles with dates
+  const articles = getAllArticles();
+  const articleUrls = articles.map((article) => ({
+    url: `${baseUrl}/blog/${article.slug}`,
+    lastModified: new Date(article.frontmatter.date),
+    changeFrequency: "monthly" as const,
+    priority: 0.7,
+  }));
+
   return [
     {
       url: baseUrl,
@@ -34,7 +44,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 0.9,
     },
-    // Note: Blog routes will be added in Phase 02
+    {
+      url: `${baseUrl}/blog`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
     ...protocolUrls,
+    ...articleUrls,
   ];
 }

@@ -5,6 +5,7 @@ import { Badge, Button, Card, CardContent } from "@myprotocolstack/ui";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { StructuredData } from "@/components/seo/structured-data";
+import { RelatedArticles } from "@/components/blog/related-articles";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -153,6 +154,8 @@ export default async function ProtocolDetailPage({ params }: Props) {
               </ol>
             </div>
           )}
+
+          <RelatedArticles category={protocol.category} />
         </CardContent>
       </Card>
     </div>

@@ -11,6 +11,9 @@ export default function Home() {
             MyProtocolStack
           </Link>
           <nav className="flex items-center gap-4">
+            <Link href="/blog">
+              <Button variant="ghost">Blog</Button>
+            </Link>
             <Link href="/login">
               <Button variant="ghost">Log in</Button>
             </Link>
@@ -152,11 +155,21 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="border-t py-8">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>
-            &copy; {new Date().getFullYear()} MyProtocolStack. All rights
-            reserved.
-          </p>
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
+            <p className="text-sm text-muted-foreground">
+              &copy; {new Date().getFullYear()} MyProtocolStack. All rights
+              reserved.
+            </p>
+            <nav className="flex items-center gap-4 text-sm text-muted-foreground">
+              <Link href="/protocols" className="hover:text-foreground">
+                Protocols
+              </Link>
+              <Link href="/blog" className="hover:text-foreground">
+                Blog
+              </Link>
+            </nav>
+          </div>
         </div>
       </footer>
     </div>
