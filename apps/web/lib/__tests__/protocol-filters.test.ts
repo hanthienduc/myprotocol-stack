@@ -21,6 +21,7 @@ const mockProtocols: Protocol[] = [
     frequency: "daily",
     science_summary: null,
     steps: [],
+    tags: ["morning", "quick", "beginner-friendly", "outdoor"],
     created_at: "2024-01-01",
   },
   {
@@ -33,6 +34,7 @@ const mockProtocols: Protocol[] = [
     frequency: "daily",
     science_summary: null,
     steps: [],
+    tags: ["morning", "quick", "no-equipment"],
     created_at: "2024-01-01",
   },
   {
@@ -45,6 +47,7 @@ const mockProtocols: Protocol[] = [
     frequency: "daily",
     science_summary: null,
     steps: [],
+    tags: ["advanced", "science-backed"],
     created_at: "2024-01-01",
   },
   {
@@ -57,6 +60,7 @@ const mockProtocols: Protocol[] = [
     frequency: "weekly",
     science_summary: null,
     steps: [],
+    tags: ["beginner-friendly", "outdoor", "science-backed"],
     created_at: "2024-01-01",
   },
 ];
@@ -115,6 +119,29 @@ describe("filterProtocols", () => {
     const result = filterProtocols(mockProtocols, { favorites: true }, favoriteIds);
     expect(result).toHaveLength(2);
     expect(result.map((p) => p.id)).toEqual(["1", "3"]);
+  });
+
+  it("filters by single tag", () => {
+    const result = filterProtocols(mockProtocols, { tags: ["morning"] });
+    expect(result).toHaveLength(2);
+    expect(result.map((p) => p.name)).toEqual(["Morning Sunlight", "Cold Shower"]);
+  });
+
+  it("filters by multiple tags (AND logic)", () => {
+    const result = filterProtocols(mockProtocols, { tags: ["morning", "quick"] });
+    expect(result).toHaveLength(2);
+    expect(result.map((p) => p.name)).toEqual(["Morning Sunlight", "Cold Shower"]);
+  });
+
+  it("filters by tags with no matches", () => {
+    const result = filterProtocols(mockProtocols, { tags: ["morning", "advanced"] });
+    expect(result).toHaveLength(0);
+  });
+
+  it("filters by outdoor tag", () => {
+    const result = filterProtocols(mockProtocols, { tags: ["outdoor"] });
+    expect(result).toHaveLength(2);
+    expect(result.map((p) => p.name)).toEqual(["Morning Sunlight", "Zone 2 Cardio"]);
   });
 
   it("combines multiple filters", () => {
@@ -191,6 +218,10 @@ describe("countActiveFilters", () => {
     expect(countActiveFilters({ favorites: true })).toBe(1);
   });
 
+  it("counts tags filter", () => {
+    expect(countActiveFilters({ tags: ["morning", "quick"] })).toBe(1);
+  });
+
   it("counts multiple filters", () => {
     const filters: ProtocolFilters = {
       query: "test",
@@ -200,6 +231,18 @@ describe("countActiveFilters", () => {
       favorites: true,
     };
     expect(countActiveFilters(filters)).toBe(5);
+  });
+
+  it("counts all filters including tags", () => {
+    const filters: ProtocolFilters = {
+      query: "test",
+      categories: ["sleep"],
+      difficulty: "easy",
+      minDuration: 10,
+      tags: ["morning"],
+      favorites: true,
+    };
+    expect(countActiveFilters(filters)).toBe(6);
   });
 });
 
@@ -229,6 +272,11 @@ describe("parseFiltersFromParams", () => {
   it("parses favorites", () => {
     const params = new URLSearchParams("favorites=true");
     expect(parseFiltersFromParams(params).favorites).toBe(true);
+  });
+
+  it("parses tags", () => {
+    const params = new URLSearchParams("tags=morning,quick,outdoor");
+    expect(parseFiltersFromParams(params).tags).toEqual(["morning", "quick", "outdoor"]);
   });
 });
 
@@ -264,6 +312,34 @@ describe("buildParamsFromFilters", () => {
     expect(params.get("difficulty")).toBe("easy");
     expect(params.get("minDuration")).toBe("10");
     expect(params.get("maxDuration")).toBe("60");
+    expect(params.get("favorites")).toBe("true");
+  });
+
+  it("builds params with tags", () => {
+    const filters: ProtocolFilters = {
+      tags: ["morning", "quick"],
+    };
+    const params = buildParamsFromFilters(filters);
+    expect(params.get("tags")).toBe("morning,quick");
+  });
+
+  it("builds params from all filters including tags", () => {
+    const filters: ProtocolFilters = {
+      query: "test",
+      categories: ["sleep"],
+      difficulty: "easy",
+      minDuration: 10,
+      maxDuration: 60,
+      tags: ["morning", "outdoor"],
+      favorites: true,
+    };
+    const params = buildParamsFromFilters(filters);
+    expect(params.get("search")).toBe("test");
+    expect(params.get("categories")).toBe("sleep");
+    expect(params.get("difficulty")).toBe("easy");
+    expect(params.get("minDuration")).toBe("10");
+    expect(params.get("maxDuration")).toBe("60");
+    expect(params.get("tags")).toBe("morning,outdoor");
     expect(params.get("favorites")).toBe("true");
   });
 
