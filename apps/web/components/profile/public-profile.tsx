@@ -1,15 +1,31 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
   Badge,
+  Button,
   Card,
   CardHeader,
   CardTitle,
   CardDescription,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from "@myprotocolstack/ui";
-import { Calendar, Eye, ExternalLink } from "lucide-react";
-import type { PublicProfile as ProfileType, PublicStack } from "@/actions/profile";
+import { Label } from "@myprotocolstack/ui";
+import { Textarea } from "@myprotocolstack/ui";
+import { Calendar, Eye, ExternalLink, Copy, Flag, MoreHorizontal } from "lucide-react";
+import { toast } from "sonner";
+import type { PublicProfile as ProfileType, PublicStack, ReportReason } from "@/actions/profile";
+import { cloneStack, reportContent } from "@/actions/profile";
 
 interface PublicProfileProps {
   profile: ProfileType;
@@ -17,6 +33,8 @@ interface PublicProfileProps {
 }
 
 export function PublicProfile({ profile, stacks }: PublicProfileProps) {
+  const [showProfileReport, setShowProfileReport] = useState(false);
+
   const initials = (profile.full_name || profile.username)
     .split(" ")
     .map((n) => n[0])
@@ -34,10 +52,21 @@ export function PublicProfile({ profile, stacks }: PublicProfileProps) {
         </Avatar>
 
         <div className="flex-1">
-          <h1 className="text-2xl font-bold">
-            {profile.full_name || profile.username}
-          </h1>
-          <p className="text-muted-foreground">@{profile.username}</p>
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-2xl font-bold">
+                {profile.full_name || profile.username}
+              </h1>
+              <p className="text-muted-foreground">@{profile.username}</p>
+            </div>
+            <ReportDialog
+              contentType="profile"
+              contentId={profile.id}
+              contentName={profile.full_name || profile.username}
+              open={showProfileReport}
+              onOpenChange={setShowProfileReport}
+            />
+          </div>
 
           {profile.bio && <p className="mt-2 text-sm">{profile.bio}</p>}
 
@@ -98,9 +127,26 @@ export function PublicProfile({ profile, stacks }: PublicProfileProps) {
 }
 
 function PublicStackCard({ stack }: { stack: PublicStack }) {
+  const router = useRouter();
+  const [isCloning, setIsCloning] = useState(false);
+  const [showReportDialog, setShowReportDialog] = useState(false);
+
   const categories = [
     ...new Set(stack.protocols.map((p) => p.category)),
   ];
+
+  const handleClone = async () => {
+    setIsCloning(true);
+    const result = await cloneStack(stack.id);
+    setIsCloning(false);
+
+    if (result.success) {
+      toast.success("Stack cloned to your account!");
+      router.push("/stacks");
+    } else {
+      toast.error(result.error || "Failed to clone stack");
+    }
+  };
 
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -113,10 +159,12 @@ function PublicStackCard({ stack }: { stack: PublicStack }) {
               </Badge>
             ))}
           </div>
-          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Eye className="h-3 w-3" />
-            {stack.view_count}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Eye className="h-3 w-3" />
+              {stack.view_count}
+            </span>
+          </div>
         </div>
         <div>
           <CardTitle className="text-lg">{stack.name}</CardTitle>
@@ -147,7 +195,140 @@ function PublicStackCard({ stack }: { stack: PublicStack }) {
             )}
           </div>
         </div>
+        {/* Action buttons */}
+        <div className="flex items-center gap-2 pt-2 border-t">
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1"
+            onClick={handleClone}
+            disabled={isCloning}
+          >
+            <Copy className="h-3 w-3 mr-1" />
+            {isCloning ? "Cloning..." : "Clone"}
+          </Button>
+          <ReportDialog
+            contentType="stack"
+            contentId={stack.id}
+            contentName={stack.name}
+            open={showReportDialog}
+            onOpenChange={setShowReportDialog}
+          />
+        </div>
       </CardHeader>
     </Card>
+  );
+}
+
+// Report dialog component
+const REPORT_REASONS: { value: ReportReason; label: string }[] = [
+  { value: "inappropriate", label: "Inappropriate content" },
+  { value: "spam", label: "Spam or promotional" },
+  { value: "misleading", label: "Misleading information" },
+  { value: "copyright", label: "Copyright violation" },
+  { value: "other", label: "Other" },
+];
+
+function ReportDialog({
+  contentType,
+  contentId,
+  contentName,
+  open,
+  onOpenChange,
+}: {
+  contentType: "profile" | "stack";
+  contentId: string;
+  contentName: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [reason, setReason] = useState<ReportReason>("inappropriate");
+  const [details, setDetails] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    const result = await reportContent({
+      content_type: contentType,
+      content_id: contentId,
+      reason,
+      details: details.trim() || undefined,
+    });
+    setIsSubmitting(false);
+
+    if (result.success) {
+      toast.success("Report submitted. Thank you for helping keep the community safe.");
+      onOpenChange(false);
+      setDetails("");
+    } else {
+      toast.error(result.error || "Failed to submit report");
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="sm" className="px-2">
+          <Flag className="h-3 w-3" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Report {contentType}</DialogTitle>
+          <DialogDescription>
+            Report &quot;{contentName}&quot; for review by our team.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>Reason</Label>
+            <div className="space-y-2">
+              {REPORT_REASONS.map((r) => (
+                <label
+                  key={r.value}
+                  className={`flex items-center gap-2 p-2 rounded border cursor-pointer transition-colors ${
+                    reason === r.value
+                      ? "border-primary bg-primary/5"
+                      : "hover:border-muted-foreground/50"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="reason"
+                    value={r.value}
+                    checked={reason === r.value}
+                    onChange={() => setReason(r.value)}
+                    className="sr-only"
+                  />
+                  <span className="text-sm">{r.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="details">Additional details (optional)</Label>
+            <Textarea
+              id="details"
+              value={details}
+              onChange={(e) => setDetails(e.target.value)}
+              placeholder="Provide more context about the issue..."
+              rows={3}
+              maxLength={500}
+            />
+            <p className="text-xs text-muted-foreground text-right">
+              {details.length}/500
+            </p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={isSubmitting}>
+            {isSubmitting ? "Submitting..." : "Submit Report"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

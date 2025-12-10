@@ -285,3 +285,180 @@ export async function getProfileForSettings() {
 
   return profile;
 }
+
+// Clone a public stack to the current user's account
+export async function cloneStack(stackId: string) {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return { success: false, error: "Please log in to clone stacks" };
+
+    // Fetch the original stack (must be public)
+    const adminClient = createAdminClient();
+    const { data: originalStack } = await adminClient
+      .from("stacks")
+      .select("name, description, protocol_ids, schedule")
+      .eq("id", stackId)
+      .eq("is_public", true)
+      .single();
+
+    if (!originalStack) {
+      return { success: false, error: "Stack not found or not public" };
+    }
+
+    // Create a new stack for the current user
+    const { data: newStack, error } = await supabase
+      .from("stacks")
+      .insert({
+        user_id: user.id,
+        name: `${originalStack.name} (Copy)`,
+        description: originalStack.description,
+        protocol_ids: originalStack.protocol_ids,
+        schedule: originalStack.schedule || "daily",
+        is_active: true,
+        is_public: false, // Cloned stacks are private by default
+      })
+      .select("id")
+      .single();
+
+    if (error) {
+      console.error("Clone stack error:", error);
+      return { success: false, error: "Failed to clone stack" };
+    }
+
+    revalidatePath("/stacks");
+
+    return { success: true, stackId: newStack.id };
+  } catch (error) {
+    console.error("Clone stack error:", error);
+    return { success: false, error: "Something went wrong" };
+  }
+}
+
+// Report content types
+export type ReportReason =
+  | "inappropriate"
+  | "spam"
+  | "misleading"
+  | "copyright"
+  | "other";
+
+export interface ReportInput {
+  content_type: "profile" | "stack";
+  content_id: string;
+  reason: ReportReason;
+  details?: string;
+}
+
+// Report inappropriate content
+export async function reportContent(input: ReportInput) {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    // Allow anonymous reports but track user if logged in
+    const reporterId = user?.id || null;
+
+    // Validate details length
+    if (input.details && input.details.length > 500) {
+      return { success: false, error: "Details must be 500 characters or less" };
+    }
+
+    const { error } = await supabase.from("content_reports").insert({
+      reporter_id: reporterId,
+      content_type: input.content_type,
+      content_id: input.content_id,
+      reason: input.reason,
+      details: input.details || null,
+      status: "pending",
+    });
+
+    if (error) {
+      // Handle duplicate report
+      if (error.code === "23505") {
+        return { success: false, error: "You have already reported this content" };
+      }
+      console.error("Report error:", error);
+      return { success: false, error: "Failed to submit report" };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Report error:", error);
+    return { success: false, error: "Something went wrong" };
+  }
+}
+
+// Get featured public profiles for landing page
+export async function getFeaturedProfiles(limit = 6) {
+  const supabase = createAdminClient();
+
+  // Get public profiles that have at least one public stack
+  // Order by total view count of their public stacks
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select(`
+      id,
+      name,
+      username,
+      bio,
+      avatar_url
+    `)
+    .eq("is_public", true)
+    .not("username", "is", null)
+    .limit(limit * 2); // Fetch more to filter
+
+  if (!profiles || profiles.length === 0) return [];
+
+  // Get public stacks for these profiles
+  const profileIds = profiles.map((p) => p.id);
+  const { data: stacks } = await supabase
+    .from("stacks")
+    .select("user_id, view_count")
+    .in("user_id", profileIds)
+    .eq("is_public", true);
+
+  // Calculate total views per profile and count stacks
+  const profileStats: Record<string, { views: number; stackCount: number }> = {};
+  for (const stack of stacks || []) {
+    const userId = stack.user_id;
+    if (!profileStats[userId]) {
+      profileStats[userId] = { views: 0, stackCount: 0 };
+    }
+    const stats = profileStats[userId];
+    if (stats) {
+      stats.views += stack.view_count || 0;
+      stats.stackCount += 1;
+    }
+  }
+
+  // Filter profiles with at least one public stack and sort by views
+  const featuredProfiles = profiles
+    .filter((p) => {
+      const stats = profileStats[p.id];
+      return stats && stats.stackCount > 0;
+    })
+    .map((p) => {
+      const stats = profileStats[p.id] || { stackCount: 0, views: 0 };
+      return {
+        id: p.id,
+        name: p.name,
+        username: p.username!,
+        bio: p.bio,
+        avatar_url: p.avatar_url,
+        stack_count: stats.stackCount,
+        total_views: stats.views,
+      };
+    })
+    .sort((a, b) => b.total_views - a.total_views)
+    .slice(0, limit);
+
+  return featuredProfiles;
+}
+
+export type FeaturedProfile = Awaited<ReturnType<typeof getFeaturedProfiles>>[number];

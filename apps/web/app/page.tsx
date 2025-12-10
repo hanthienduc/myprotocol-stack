@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { Button } from "@myprotocolstack/ui";
+import { FeaturedProfiles } from "@/components/profile/featured-profiles";
+import { getFeaturedProfiles } from "@/actions/profile";
 
-export default function Home() {
+export default async function Home() {
+  const featuredProfiles = await getFeaturedProfiles(6);
   return (
     <div className="flex min-h-screen flex-col">
       {/* Header */}
@@ -133,6 +136,11 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {/* Featured Profiles */}
+        {featuredProfiles.length > 0 && (
+          <FeaturedProfiles profiles={featuredProfiles} />
+        )}
 
         {/* CTA */}
         <section className="border-t bg-muted/50 py-24">
