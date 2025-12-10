@@ -31,6 +31,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
+  // Fetch public profiles
+  const { data: publicProfiles } = await supabase
+    .from("profiles")
+    .select("username, updated_at")
+    .eq("is_public", true)
+    .not("username", "is", null);
+
+  const profileUrls = (publicProfiles || []).map((p) => ({
+    url: `${baseUrl}/profile/${p.username}`,
+    lastModified: p.updated_at ? new Date(p.updated_at) : new Date(),
+    changeFrequency: "weekly" as const,
+    priority: 0.6,
+  }));
+
   return [
     {
       url: baseUrl,
@@ -52,5 +66,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     ...protocolUrls,
     ...articleUrls,
+    ...profileUrls,
   ];
 }

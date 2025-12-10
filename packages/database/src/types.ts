@@ -68,6 +68,8 @@ export type Database = {
           schedule: "daily" | "weekdays" | "weekends" | "custom";
           custom_days: number[] | null;
           is_active: boolean;
+          is_public: boolean;
+          view_count: number;
           created_at: string;
           updated_at: string;
         };
@@ -80,6 +82,8 @@ export type Database = {
           schedule?: "daily" | "weekdays" | "weekends" | "custom";
           custom_days?: number[] | null;
           is_active?: boolean;
+          is_public?: boolean;
+          view_count?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -92,6 +96,8 @@ export type Database = {
           schedule?: "daily" | "weekdays" | "weekends" | "custom";
           custom_days?: number[] | null;
           is_active?: boolean;
+          is_public?: boolean;
+          view_count?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -141,6 +147,10 @@ export type Database = {
           onboarding_completed: boolean;
           onboarding_profile: OnboardingProfile | null;
           favorite_protocol_ids: string[];
+          username: string | null;
+          is_public: boolean;
+          bio: string | null;
+          social_links: { twitter?: string; website?: string } | null;
           created_at: string;
           updated_at: string;
         };
@@ -153,6 +163,10 @@ export type Database = {
           onboarding_completed?: boolean;
           onboarding_profile?: OnboardingProfile | null;
           favorite_protocol_ids?: string[];
+          username?: string | null;
+          is_public?: boolean;
+          bio?: string | null;
+          social_links?: { twitter?: string; website?: string } | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -165,6 +179,10 @@ export type Database = {
           onboarding_completed?: boolean;
           onboarding_profile?: OnboardingProfile | null;
           favorite_protocol_ids?: string[];
+          username?: string | null;
+          is_public?: boolean;
+          bio?: string | null;
+          social_links?: { twitter?: string; website?: string } | null;
           created_at?: string;
           updated_at?: string;
         };

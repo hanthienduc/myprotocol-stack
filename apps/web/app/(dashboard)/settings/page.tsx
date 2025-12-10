@@ -4,7 +4,9 @@ import { Badge } from "@myprotocolstack/ui";
 import type { Profile } from "@myprotocolstack/database";
 import { NotificationSettings } from "@/components/settings/notification-settings";
 import { RetakeQuizSettings } from "@/components/settings/retake-quiz-settings";
+import { PrivacySettings } from "@/components/settings/privacy-settings";
 import { getNotificationPreferences } from "@/actions/notification-preferences";
+import { getProfileForSettings } from "@/actions/profile";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -14,13 +16,21 @@ export default async function SettingsPage() {
 
   if (!user) return null;
 
-  // Get profile and notification preferences in parallel
-  const [profileResult, notificationPreferences] = await Promise.all([
+  // Get profile, notification preferences, and privacy settings in parallel
+  const [profileResult, notificationPreferences, privacyProfile] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user.id).single(),
     getNotificationPreferences(),
+    getProfileForSettings(),
   ]);
 
   const profile = profileResult.data as Profile | null;
+
+  const privacyData = {
+    username: privacyProfile?.username || null,
+    bio: privacyProfile?.bio || null,
+    is_public: privacyProfile?.is_public || false,
+    social_links: privacyProfile?.social_links as { twitter?: string; website?: string } | null,
+  };
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -67,6 +77,9 @@ export default async function SettingsPage() {
 
       {/* Protocol Preferences / Retake Quiz */}
       <RetakeQuizSettings />
+
+      {/* Public Profile / Privacy Settings */}
+      <PrivacySettings initialData={privacyData} />
 
       {/* Notifications */}
       <NotificationSettings initialPreferences={notificationPreferences} />

@@ -7,6 +7,7 @@ import { Input } from "@myprotocolstack/ui";
 import { Button } from "@myprotocolstack/ui";
 import { Badge } from "@myprotocolstack/ui";
 import { Checkbox } from "@myprotocolstack/ui";
+import { Switch } from "@myprotocolstack/ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@myprotocolstack/ui";
 import { createClient } from "@myprotocolstack/database/client";
 import { toast } from "sonner";
@@ -23,6 +24,7 @@ interface StackBuilderProps {
     protocol_ids: string[];
     schedule: string;
     is_active: boolean;
+    is_public?: boolean;
   };
 }
 
@@ -51,6 +53,7 @@ export function StackBuilder({ protocols, favoriteIds = [], initialStack }: Stac
   );
   const [schedule, setSchedule] = useState(initialStack?.schedule || "daily");
   const [isActive, setIsActive] = useState(initialStack?.is_active ?? true);
+  const [isPublic, setIsPublic] = useState(initialStack?.is_public ?? false);
 
   // Group protocols by category
   const groupedProtocols = protocols.reduce(
@@ -105,6 +108,7 @@ export function StackBuilder({ protocols, favoriteIds = [], initialStack }: Stac
       protocol_ids: Array.from(selectedProtocols),
       schedule,
       is_active: isActive,
+      is_public: isPublic,
     };
 
     let error;
@@ -186,6 +190,23 @@ export function StackBuilder({ protocols, favoriteIds = [], initialStack }: Stac
             <label htmlFor="active" className="text-sm">
               Active (show in Today view)
             </label>
+          </div>
+
+          {/* Public visibility toggle */}
+          <div className="flex items-center justify-between pt-4 border-t">
+            <div>
+              <label htmlFor="public" className="text-sm font-medium">
+                Make stack public
+              </label>
+              <p className="text-xs text-muted-foreground">
+                Share on your public profile for others to see
+              </p>
+            </div>
+            <Switch
+              id="public"
+              checked={isPublic}
+              onCheckedChange={setIsPublic}
+            />
           </div>
         </CardContent>
       </Card>
