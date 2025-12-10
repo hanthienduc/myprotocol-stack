@@ -1,8 +1,9 @@
 # Codebase Summary
 
 **Last Updated**: 2025-12-10
-**Version**: 0.1.0
+**Version**: 0.1.1
 **Project**: MyProtocolStack
+**Phase Status**: Phase 5 Growth - SEO Foundation Complete
 
 ## Overview
 
@@ -10,8 +11,8 @@ MyProtocolStack is a micro-SaaS for building and tracking personalized health pr
 
 ## Project Status
 
-**Phase**: MVP Implementation
-**Codebase**: Production-ready core features
+**Phase**: Phase 5 Growth - SEO Foundation (Complete), Phase 6 Advanced Search & Filtering (Complete)
+**Codebase**: Production-ready core features with SEO optimization and advanced search
 
 ## Quick Links
 
@@ -65,7 +66,11 @@ myprotocolstack/
 │   │   ├── login/page.tsx
 │   │   └── callback/page.tsx
 │   ├── (dashboard)/              # Protected dashboard routes
-│   │   ├── protocols/page.tsx    # Protocol library
+│   │   ├── protocols/
+│   │   │   ├── page.tsx          # Protocol library
+│   │   │   └── [id]/             # Phase 5: Protocol detail
+│   │   │       ├── page.tsx      # Protocol detail page + HowTo schema
+│   │   │       └── opengraph-image.tsx # Dynamic OG image
 │   │   ├── stacks/
 │   │   │   ├── page.tsx          # Stack list
 │   │   │   ├── new/page.tsx      # Create stack
@@ -75,13 +80,19 @@ myprotocolstack/
 │   │   │   └── loading.tsx       # Analytics skeleton loader
 │   │   ├── settings/page.tsx     # User settings
 │   │   └── layout.tsx            # Dashboard layout w/ nav
-│   ├── layout.tsx                # Root layout
+│   ├── layout.tsx                # Root layout + metadata, Organization schema
+│   ├── sitemap.ts                # Phase 5: Dynamic sitemap generation
+│   ├── robots.ts                 # Phase 5: Robots.txt configuration
+│   ├── opengraph-image.tsx       # Phase 5: Global OG image fallback
+│   ├── twitter-image.tsx         # Phase 5: Global Twitter image fallback
 │   └── page.tsx                  # Landing page
 │
 ├── components/
 │   ├── ui/                       # shadcn/ui (generated)
 │   ├── auth/
 │   │   └── sign-out-button.tsx
+│   ├── seo/                      # Phase 5: SEO components
+│   │   └── structured-data.tsx   # JSON-LD schema markup
 │   ├── protocols/
 │   │   ├── protocol-card.tsx
 │   │   ├── protocol-search.tsx      # Phase 6: Debounced search
@@ -234,5 +245,55 @@ Using ClaudeKit Engineer with:
   - URL param parsing/building
   - Active filter counting
   - Edge cases (empty queries, multiple filters, null durations)
+
+**Last Review**: 2025-12-10
+
+---
+
+## Phase 5: Growth - SEO Foundation (Dec 2025)
+
+**Status:** Complete - Phase 01 SEO Foundation
+
+**New SEO Components:**
+- `StructuredData` - Reusable JSON-LD structured data component for schema.org markup
+
+**New Routes/Files:**
+- `app/sitemap.ts` - Dynamic sitemap generation with all protocols (changeFrequency: "monthly", priority: 0.8)
+- `app/robots.ts` - Robots.txt configuration (allow all except /api, /auth, /today, /settings, /analytics, /onboarding; disallow AI bots)
+- `app/layout.tsx` - Enhanced root metadata with Organization schema, OpenGraph, Twitter cards
+- `app/opengraph-image.tsx` - Global OG image fallback (1200x630)
+- `app/twitter-image.tsx` - Global Twitter card image (1200x630)
+
+**New Protocol Detail Route:**
+- `app/(dashboard)/protocols/[id]/page.tsx` - Dynamic protocol detail page with:
+  - Dynamic metadata generation (title, description, OpenGraph from protocol data)
+  - HowTo structured data schema for each protocol
+  - Protocol display with category/difficulty badges, steps, science summary
+  - Back navigation link to protocols list
+
+- `app/(dashboard)/protocols/[id]/opengraph-image.tsx` - Dynamic protocol OG image (1200x630) with:
+  - Category-specific gradient backgrounds
+  - Protocol name, category, difficulty badges
+  - Edge runtime for fast image generation
+
+**Metadata & SEO:**
+- Root metadata: Title template, description, keywords (health protocols, biohacking, habit tracking, etc)
+- OpenGraph tags for social sharing (website type, images, locale)
+- Twitter cards (summary_large_image format)
+- Robots meta (index: true, follow: true, googleBot enabled)
+- Organization JSON-LD schema in root layout
+- Protocol HowTo schema generation in detail page
+
+**Sitemap Configuration:**
+- Base URL: `/` (priority: 1.0, weekly)
+- Protocols list: `/protocols` (priority: 0.9, weekly)
+- All protocols: `/protocols/{id}` (priority: 0.8, monthly, from database)
+- Dynamic based on protocol creation timestamp
+
+**Robots Configuration:**
+- Allow all public routes
+- Disallow private/admin routes: /api/, /auth/, /today/, /settings/, /analytics/, /onboarding/
+- Block AI training bots: GPTBot, ChatGPT-User
+- Sitemap reference included
 
 **Last Review**: 2025-12-10
