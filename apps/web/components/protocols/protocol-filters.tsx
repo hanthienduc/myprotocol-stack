@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Heart, Filter, X, ChevronDown, Tag } from "lucide-react";
 import { Button } from "@myprotocolstack/ui";
 import { Checkbox } from "@myprotocolstack/ui";
@@ -33,6 +33,7 @@ import {
   PROTOCOL_TAGS,
   countActiveFilters,
 } from "@/lib/protocol-filters";
+import { updateUrlParams, clearAllUrlParams } from "@/lib/url-utils";
 
 const CATEGORIES: { value: ProtocolCategory; label: string; icon: string }[] = [
   { value: "sleep", label: "Sleep", icon: "🌙" },
@@ -62,7 +63,6 @@ interface ProtocolFiltersProps {
 }
 
 export function ProtocolFilters({ totalCount, filteredCount }: ProtocolFiltersProps) {
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   // Parse current filters from URL
@@ -92,22 +92,6 @@ export function ProtocolFilters({ totalCount, filteredCount }: ProtocolFiltersPr
 
   const activeFilterCount = countActiveFilters(currentFilters);
 
-  // Update URL params
-  const updateParams = useCallback(
-    (updates: Record<string, string | null>) => {
-      const params = new URLSearchParams(searchParams.toString());
-      Object.entries(updates).forEach(([key, value]) => {
-        if (value === null || value === "") {
-          params.delete(key);
-        } else {
-          params.set(key, value);
-        }
-      });
-      router.push(`/protocols?${params.toString()}`);
-    },
-    [router, searchParams]
-  );
-
   // Category toggle
   const toggleCategory = useCallback(
     (category: ProtocolCategory) => {
@@ -115,32 +99,32 @@ export function ProtocolFilters({ totalCount, filteredCount }: ProtocolFiltersPr
       const updated = current.includes(category)
         ? current.filter((c) => c !== category)
         : [...current, category];
-      updateParams({
+      updateUrlParams({
         categories: updated.length > 0 ? updated.join(",") : null,
       });
     },
-    [currentFilters.categories, updateParams]
+    [currentFilters.categories]
   );
 
   // Difficulty toggle
   const setDifficulty = useCallback(
     (difficulty: ProtocolDifficulty | null) => {
-      updateParams({ difficulty });
+      updateUrlParams({ difficulty });
     },
-    [updateParams]
+    []
   );
 
   // Duration preset toggle
   const setDuration = useCallback(
     (minDuration: number | null, maxDuration: number | null | undefined) => {
-      updateParams({
+      updateUrlParams({
         minDuration: minDuration !== null ? String(minDuration) : null,
         maxDuration: maxDuration !== null && maxDuration !== undefined
           ? String(maxDuration)
           : null,
       });
     },
-    [updateParams]
+    []
   );
 
   // Tag toggle
@@ -150,35 +134,35 @@ export function ProtocolFilters({ totalCount, filteredCount }: ProtocolFiltersPr
       const updated = current.includes(tag)
         ? current.filter((t) => t !== tag)
         : [...current, tag];
-      updateParams({
+      updateUrlParams({
         tags: updated.length > 0 ? updated.join(",") : null,
       });
     },
-    [currentFilters.tags, updateParams]
+    [currentFilters.tags]
   );
 
   // Favorites toggle
   const toggleFavorites = useCallback(() => {
-    updateParams({
+    updateUrlParams({
       favorites: currentFilters.favorites ? null : "true",
     });
-  }, [currentFilters.favorites, updateParams]);
+  }, [currentFilters.favorites]);
 
   // Sort change
   const setSort = useCallback(
     (field: SortField, order: SortOrder) => {
-      updateParams({
+      updateUrlParams({
         sort: field === "name" && order === "asc" ? null : field,
         order: order === "asc" ? null : order,
       });
     },
-    [updateParams]
+    []
   );
 
   // Clear all filters
   const clearAllFilters = useCallback(() => {
-    router.push("/protocols");
-  }, [router]);
+    clearAllUrlParams();
+  }, []);
 
   // Check active duration preset
   const activeDurationPreset = useMemo(() => {

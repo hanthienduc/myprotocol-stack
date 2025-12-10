@@ -1,17 +1,17 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { Search, X } from "lucide-react";
 import { Input } from "@myprotocolstack/ui";
 import { Button } from "@myprotocolstack/ui";
+import { updateUrlParams } from "@/lib/url-utils";
 
 interface ProtocolSearchProps {
   className?: string;
 }
 
 export function ProtocolSearch({ className }: ProtocolSearchProps) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("search") || "");
   const searchParamsRef = useRef(searchParams);
@@ -28,17 +28,11 @@ export function ProtocolSearch({ className }: ProtocolSearchProps) {
     if (query === urlSearch) return;
 
     const timer = setTimeout(() => {
-      const params = new URLSearchParams(searchParamsRef.current.toString());
-      if (query.trim()) {
-        params.set("search", query.trim());
-      } else {
-        params.delete("search");
-      }
-      router.push(`/protocols?${params.toString()}`);
+      updateUrlParams({ search: query.trim() || null });
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [query, router]);
+  }, [query]);
 
   // Sync with URL changes (e.g., when cleared externally via "Clear all" button)
   useEffect(() => {
@@ -51,12 +45,10 @@ export function ProtocolSearch({ className }: ProtocolSearchProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  const handleClear = () => {
+  const handleClear = useCallback(() => {
     setQuery("");
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete("search");
-    router.push(`/protocols?${params.toString()}`);
-  };
+    updateUrlParams({ search: null });
+  }, []);
 
   return (
     <div className={`relative ${className || ""}`}>

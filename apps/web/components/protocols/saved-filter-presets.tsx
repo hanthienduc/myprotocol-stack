@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Bookmark, Plus, Trash2, Check } from "lucide-react";
 import { createClient } from "@myprotocolstack/database/client";
 import { Button } from "@myprotocolstack/ui";
@@ -28,13 +28,13 @@ import {
   buildParamsFromFilters,
   countActiveFilters,
 } from "@/lib/protocol-filters";
+import { updateUrlParams } from "@/lib/url-utils";
 
 interface SavedFilterPresetsProps {
   currentFilters: ProtocolFilters;
 }
 
 export function SavedFilterPresets({ currentFilters }: SavedFilterPresetsProps) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [presets, setPresets] = useState<SavedFilterPreset[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -79,10 +79,20 @@ export function SavedFilterPresets({ currentFilters }: SavedFilterPresetsProps) 
         field: (preset.sort_field as "name" | "difficulty" | "duration") || "name",
         order: (preset.sort_order as "asc" | "desc") || "asc",
       });
-      router.push(`/protocols?${params.toString()}`);
+      // Convert URLSearchParams to Record<string, string | null>
+      const updates: Record<string, string | null> = {};
+      // First clear all existing params
+      ["search", "categories", "difficulty", "minDuration", "maxDuration", "tags", "favorites", "sort", "order"].forEach(key => {
+        updates[key] = null;
+      });
+      // Then set new values from preset
+      params.forEach((value, key) => {
+        updates[key] = value;
+      });
+      updateUrlParams(updates);
       toast.success(`Applied "${preset.name}" filters`);
     },
-    [router]
+    []
   );
 
   // Save current filters as preset
