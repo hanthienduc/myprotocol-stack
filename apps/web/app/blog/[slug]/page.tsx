@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getArticleBySlug, getArticleSlugs } from "@/lib/blog/articles";
 import { categoryColors } from "@/lib/blog/category-colors";
 import { RelatedProtocols } from "@/components/blog/related-protocols";
 import { StructuredData } from "@/components/seo/structured-data";
-import { Badge } from "@myprotocolstack/ui";
+import { Badge, Button } from "@myprotocolstack/ui";
+import { ArrowLeft } from "lucide-react";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -77,6 +79,11 @@ export default async function ArticlePage({ params }: Props) {
   return (
     <article className="max-w-3xl mx-auto py-8 px-4">
       <StructuredData data={articleSchema} />
+
+      <Link href="/blog" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6">
+        <ArrowLeft className="w-4 h-4" />
+        Back to Blog
+      </Link>
 
       <header className="mb-8">
         <div className="flex items-center gap-2 mb-4">
