@@ -1,13 +1,26 @@
 import { createClient } from "@myprotocolstack/database/server";
 import { ProtocolCard } from "@/components/protocols/protocol-card";
 import { ProtocolFilters } from "@/components/protocols/protocol-filters";
-import type { Protocol, ProtocolCategory } from "@myprotocolstack/database";
+import type { Protocol, ProtocolCategory, ProtocolDifficulty } from "@myprotocolstack/database";
+import {
+  filterProtocols,
+  sortProtocols,
+  type ProtocolFilters as FilterType,
+  type ProtocolSort,
+  type SortField,
+  type SortOrder,
+} from "@/lib/protocol-filters";
 
 interface ProtocolsPageProps {
   searchParams: Promise<{
-    category?: ProtocolCategory;
     search?: string;
+    categories?: string;
+    difficulty?: ProtocolDifficulty;
+    minDuration?: string;
+    maxDuration?: string;
     favorites?: string;
+    sort?: SortField;
+    order?: SortOrder;
   }>;
 }
 
@@ -15,7 +28,7 @@ export default async function ProtocolsPage({ searchParams }: ProtocolsPageProps
   const params = await searchParams;
   const supabase = await createClient();
 
-  // Fetch protocols
+  // Fetch all protocols
   const { data, error } = await supabase
     .from("protocols")
     .select("*")
@@ -38,27 +51,33 @@ export default async function ProtocolsPage({ searchParams }: ProtocolsPageProps
     favoriteIds = profile?.favorite_protocol_ids || [];
   }
 
-  // Type assertion and filtering
-  let protocols = (data || []) as Protocol[];
+  const allProtocols = (data || []) as Protocol[];
+  const totalCount = allProtocols.length;
 
-  if (params.category) {
-    protocols = protocols.filter((p) => p.category === params.category);
-  }
+  // Build filter object from URL params
+  const filters: FilterType = {
+    query: params.search,
+    categories: params.categories
+      ? (params.categories.split(",") as ProtocolCategory[])
+      : undefined,
+    difficulty: params.difficulty,
+    minDuration: params.minDuration ? parseInt(params.minDuration, 10) : undefined,
+    maxDuration: params.maxDuration ? parseInt(params.maxDuration, 10) : undefined,
+    favorites: params.favorites === "true",
+  };
 
-  if (params.search) {
-    const search = params.search.toLowerCase();
-    protocols = protocols.filter((p) =>
-      p.name.toLowerCase().includes(search)
-    );
-  }
+  // Build sort object from URL params
+  const sort: ProtocolSort = {
+    field: params.sort || "name",
+    order: params.order || "asc",
+  };
 
-  // Filter by favorites if requested
-  const showFavoritesOnly = params.favorites === "true";
-  if (showFavoritesOnly) {
-    protocols = protocols.filter((p) => favoriteIds.includes(p.id));
-  }
+  // Apply filters and sort
+  let protocols = filterProtocols(allProtocols, filters, favoriteIds);
+  protocols = sortProtocols(protocols, sort);
+  const filteredCount = protocols.length;
 
-  // Group by category
+  // Group by category for display
   const groupedProtocols = protocols.reduce<Partial<Record<ProtocolCategory, Protocol[]>>>(
     (acc, protocol) => {
       const category = protocol.category;
@@ -80,6 +99,9 @@ export default async function ProtocolsPage({ searchParams }: ProtocolsPageProps
 
   const categoryOrder: ProtocolCategory[] = ["sleep", "focus", "energy", "fitness"];
 
+  // Check if we have active category filters for single category view
+  const singleCategory = filters.categories?.length === 1 ? filters.categories[0] : null;
+
   return (
     <div className="space-y-8">
       <div>
@@ -89,20 +111,19 @@ export default async function ProtocolsPage({ searchParams }: ProtocolsPageProps
         </p>
       </div>
 
-      <ProtocolFilters />
+      <ProtocolFilters totalCount={totalCount} filteredCount={filteredCount} />
 
-      {params.category ? (
+      {singleCategory ? (
         // Single category view
         <div className="space-y-4">
           <h2 className="text-xl font-semibold flex items-center gap-2">
-            {categoryLabels[params.category].icon}{" "}
-            {categoryLabels[params.category].label}
+            {categoryLabels[singleCategory].icon} {categoryLabels[singleCategory].label}
             <span className="text-sm font-normal text-muted-foreground">
-              ({groupedProtocols[params.category]?.length || 0} protocols)
+              ({groupedProtocols[singleCategory]?.length || 0} protocols)
             </span>
           </h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {groupedProtocols[params.category]?.map((protocol) => (
+            {groupedProtocols[singleCategory]?.map((protocol) => (
               <ProtocolCard
                 key={protocol.id}
                 protocol={protocol}
@@ -112,7 +133,7 @@ export default async function ProtocolsPage({ searchParams }: ProtocolsPageProps
           </div>
         </div>
       ) : (
-        // All categories view
+        // All categories view (grouped)
         categoryOrder.map((category) => {
           const categoryProtocols = groupedProtocols[category];
           if (!categoryProtocols?.length) return null;
@@ -140,7 +161,7 @@ export default async function ProtocolsPage({ searchParams }: ProtocolsPageProps
       )}
 
       {/* Empty state for favorites filter */}
-      {showFavoritesOnly && protocols.length === 0 && (
+      {filters.favorites && protocols.length === 0 && (
         <div className="text-center py-12">
           <p className="text-muted-foreground">No favorite protocols yet</p>
           <p className="text-sm text-muted-foreground mt-1">
@@ -149,10 +170,13 @@ export default async function ProtocolsPage({ searchParams }: ProtocolsPageProps
         </div>
       )}
 
-      {/* Empty state for general search */}
-      {!showFavoritesOnly && (!protocols || protocols.length === 0) && (
+      {/* Empty state for general filters */}
+      {!filters.favorites && protocols.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-muted-foreground">No protocols found</p>
+          <p className="text-muted-foreground">No protocols found matching your filters</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Try adjusting your search or filter criteria
+          </p>
         </div>
       )}
     </div>

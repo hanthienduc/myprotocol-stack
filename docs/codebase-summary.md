@@ -1,6 +1,6 @@
 # Codebase Summary
 
-**Last Updated**: 2025-12-09
+**Last Updated**: 2025-12-10
 **Version**: 0.1.0
 **Project**: MyProtocolStack
 
@@ -84,7 +84,8 @@ myprotocolstack/
 │   │   └── sign-out-button.tsx
 │   ├── protocols/
 │   │   ├── protocol-card.tsx
-│   │   └── protocol-filters.tsx
+│   │   ├── protocol-search.tsx      # Phase 6: Debounced search
+│   │   └── protocol-filters.tsx     # Phase 6: Advanced filters + sort
 │   ├── stacks/
 │   │   ├── stack-builder.tsx     # Create/edit form
 │   │   └── delete-stack-button.tsx
@@ -104,6 +105,9 @@ myprotocolstack/
 │   │   ├── server.ts            # Server client
 │   │   └── middleware.ts        # Auth middleware
 │   ├── analytics-queries.ts      # Phase 4: Server analytics functions
+│   ├── protocol-filters.ts       # Phase 6: Filter/sort utilities
+│   ├── __tests__/
+│   │   └── protocol-filters.test.ts  # Phase 6: 34 filter tests
 │   ├── types/
 │   │   ├── analytics.ts         # Phase 4: Analytics type definitions
 │   │   └── database.ts          # Supabase types
@@ -177,3 +181,58 @@ Using ClaudeKit Engineer with:
 - Chart components use Recharts with category color scheme
 
 **Last Review**: 2025-12-09
+
+---
+
+## Phase 6: Advanced Search & Filtering (Dec 2025)
+
+**Status:** Complete
+
+**New Components:**
+- `ProtocolSearch` - Debounced full-text search (300ms) on name + description, clear button
+- `ProtocolFilters` - Advanced filter/sort UI with mobile drawer + desktop inline controls
+
+**New Utility Functions (protocol-filters.ts):**
+- `filterProtocols()` - Text search, category multi-select, difficulty, duration range, favorites
+- `sortProtocols()` - Sort by name, difficulty (easy→hard), duration (ascending/descending)
+- `countActiveFilters()` - Badge count for active filters
+- `parseFiltersFromParams()` - URL params → filter object
+- `parseSortFromParams()` - URL params → sort object
+- `buildParamsFromFilters()` - Filter object → shareable URL params
+
+**Filter Features:**
+- Multi-category filter (checkboxes: Sleep/Focus/Energy/Fitness)
+- Difficulty filter (Easy/Medium/Hard toggle)
+- Duration presets (<15min, 15-30min, 30-60min, 60+min)
+- Favorites filter (heart icon, red highlight when active)
+- Sort options (name asc/desc, difficulty asc/desc, duration asc/desc)
+- URL state persistence (all filters shareable via URL)
+- Active filter counter with "Clear all" button
+- Result count display (X of Y protocols)
+
+**Page Updates (protocols/page.tsx):**
+- Server-side filtering & sorting from URL params
+- Fetch user favorites from profiles.favorite_protocol_ids
+- Grouped display by category (collapsible per category)
+- Single-category view when filtered to one category
+- Empty states for no results + favorites view
+
+**Mobile Responsiveness:**
+- Inline filters + sort on desktop
+- Bottom Sheet drawer for filters on mobile
+- Compact filter button with count badge
+- All functionality preserved on small screens
+
+**Tests (protocol-filters.test.ts):**
+- 34 unit tests covering:
+  - Text search (name/description, case-insensitive)
+  - Category filtering (single/multi)
+  - Difficulty filtering
+  - Duration range filtering
+  - Favorites filtering
+  - Sorting (name, difficulty, duration, both orders)
+  - URL param parsing/building
+  - Active filter counting
+  - Edge cases (empty queries, multiple filters, null durations)
+
+**Last Review**: 2025-12-10

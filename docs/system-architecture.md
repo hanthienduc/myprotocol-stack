@@ -1,6 +1,6 @@
 # System Architecture
 
-**Last Updated**: 2025-12-09
+**Last Updated**: 2025-12-10
 **Version**: 0.1.0
 **Project**: MyProtocolStack
 
@@ -63,6 +63,7 @@ CREATE TABLE public.profiles (
   avatar_url TEXT,
   subscription_tier TEXT DEFAULT 'free', -- 'free' | 'pro'
   subscription_id TEXT, -- Stripe subscription ID
+  favorite_protocol_ids UUID[] DEFAULT '{}', -- Phase 6: Favorites list
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
