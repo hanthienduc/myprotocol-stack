@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button } from "@myprotocolstack/ui";
 import { FeaturedProfiles } from "@/components/profile/featured-profiles";
 import { getFeaturedProfiles } from "@/actions/profile";
+import { PricingComparison } from "@/components/pricing";
 
 // Force dynamic rendering - uses service role key for featured profiles
 export const dynamic = "force-dynamic";
@@ -19,6 +20,9 @@ export default async function Home() {
           <nav className="flex items-center gap-4">
             <Link href="/blog">
               <Button variant="ghost">Blog</Button>
+            </Link>
+            <Link href="/pricing">
+              <Button variant="ghost">Pricing</Button>
             </Link>
             <Link href="/login">
               <Button variant="ghost">Log in</Button>
@@ -140,6 +144,19 @@ export default async function Home() {
           </div>
         </section>
 
+        {/* Pricing */}
+        <section id="pricing" className="border-t bg-muted/50 py-24">
+          <div className="container mx-auto px-4">
+            <h2 className="text-center text-3xl font-bold">Simple Pricing</h2>
+            <p className="text-center text-muted-foreground mt-4 max-w-2xl mx-auto">
+              Start free. Upgrade when you need more.
+            </p>
+            <div className="mt-12">
+              <PricingComparison />
+            </div>
+          </div>
+        </section>
+
         {/* Featured Profiles */}
         {featuredProfiles.length > 0 && (
           <FeaturedProfiles profiles={featuredProfiles} />
@@ -178,6 +195,9 @@ export default async function Home() {
               </Link>
               <Link href="/blog" className="hover:text-foreground">
                 Blog
+              </Link>
+              <Link href="/pricing" className="hover:text-foreground">
+                Pricing
               </Link>
             </nav>
           </div>

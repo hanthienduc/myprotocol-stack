@@ -32,6 +32,7 @@ Implement Stripe subscription billing for MyProtocolStack with Free/Pro tiers.
 | 04 | [Webhook Handler](./phase-04-webhook-handler.md) | DONE | P0 |
 | 05 | [Feature Gating](./phase-05-feature-gating.md) | DONE | P1 |
 | 06 | [Subscription UI](./phase-06-subscription-ui.md) | DONE | P1 |
+| 07 | [Pricing Page](./phase-07-pricing-page.md) | DONE | P1 |
 
 ## Key Decisions
 
