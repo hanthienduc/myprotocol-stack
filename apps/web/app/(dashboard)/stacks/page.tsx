@@ -4,6 +4,7 @@ import { Button } from "@myprotocolstack/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@myprotocolstack/ui";
 import { Badge } from "@myprotocolstack/ui";
 import type { Stack, Protocol } from "@myprotocolstack/database";
+import { StackLimitBanner } from "@/components/subscription";
 
 export default async function StacksPage() {
   const supabase = await createClient();
@@ -54,6 +55,9 @@ export default async function StacksPage() {
           <Button>Create Stack</Button>
         </Link>
       </div>
+
+      {/* Show banner if user is at stack limit */}
+      <StackLimitBanner />
 
       {!stacks || stacks.length === 0 ? (
         <Card className="text-center py-12">

@@ -1,8 +1,28 @@
 import { createClient } from "@myprotocolstack/database/server";
 import { StackBuilder } from "@/components/stacks/stack-builder";
+import { canCreateStack } from "@/lib/subscription";
+import { StackLimitCard } from "@/components/subscription";
 
 export default async function NewStackPage() {
   const supabase = await createClient();
+
+  // Check subscription limits
+  const { allowed, current, limit } = await canCreateStack();
+
+  if (!allowed) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">Create New Stack</h1>
+          <p className="text-muted-foreground mt-1">
+            Combine protocols into a daily routine
+          </p>
+        </div>
+
+        <StackLimitCard current={current} limit={limit} />
+      </div>
+    );
+  }
 
   // Fetch all protocols
   const { data: protocols } = await supabase

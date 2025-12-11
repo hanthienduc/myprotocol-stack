@@ -1,12 +1,12 @@
 import { createClient } from "@myprotocolstack/database/server";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@myprotocolstack/ui";
-import { Badge } from "@myprotocolstack/ui";
-import type { Profile } from "@myprotocolstack/database";
 import { NotificationSettings } from "@/components/settings/notification-settings";
 import { RetakeQuizSettings } from "@/components/settings/retake-quiz-settings";
 import { PrivacySettings } from "@/components/settings/privacy-settings";
+import { SubscriptionCard } from "@/components/subscription/subscription-card";
 import { getNotificationPreferences } from "@/actions/notification-preferences";
 import { getProfileForSettings } from "@/actions/profile";
+import { getSubscriptionStatus } from "@/actions/subscription";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -16,14 +16,12 @@ export default async function SettingsPage() {
 
   if (!user) return null;
 
-  // Get profile, notification preferences, and privacy settings in parallel
-  const [profileResult, notificationPreferences, privacyProfile] = await Promise.all([
-    supabase.from("profiles").select("*").eq("id", user.id).single(),
+  // Get notification preferences, privacy settings, and subscription in parallel
+  const [notificationPreferences, privacyProfile, subscriptionStatus] = await Promise.all([
     getNotificationPreferences(),
     getProfileForSettings(),
+    getSubscriptionStatus(),
   ]);
-
-  const profile = profileResult.data as Profile | null;
 
   const privacyData = {
     username: privacyProfile?.username || null,
@@ -85,37 +83,11 @@ export default async function SettingsPage() {
       <NotificationSettings initialPreferences={notificationPreferences} />
 
       {/* Subscription */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Subscription</CardTitle>
-          <CardDescription>Your current plan</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Free Plan</p>
-              <p className="text-sm text-muted-foreground">
-                3 protocol stacks, basic tracking
-              </p>
-            </div>
-            <Badge variant={profile?.subscription_tier === "pro" ? "default" : "secondary"}>
-              {profile?.subscription_tier === "pro" ? "Pro" : "Free"}
-            </Badge>
-          </div>
-          {profile?.subscription_tier !== "pro" && (
-            <div className="rounded-lg border border-dashed p-4">
-              <h4 className="font-medium">Upgrade to Pro</h4>
-              <p className="text-sm text-muted-foreground mt-1">
-                Unlimited stacks, advanced analytics, AI recommendations, and more.
-              </p>
-              <p className="text-lg font-bold mt-2">$9.99/month</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Coming soon
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <SubscriptionCard
+        tier={subscriptionStatus.tier}
+        currentPeriodEnd={subscriptionStatus.currentPeriodEnd}
+        cancelAtPeriodEnd={subscriptionStatus.cancelAtPeriodEnd}
+      />
 
       {/* Data */}
       <Card>
