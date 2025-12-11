@@ -16,14 +16,7 @@ export function getStripe(): Stripe {
   return stripeInstance;
 }
 
-// Legacy export for backwards compatibility (lazy getter)
-export const stripe = new Proxy({} as Stripe, {
-  get(_, prop) {
-    return (getStripe() as unknown as Record<string | symbol, unknown>)[prop];
-  },
-});
-
-// Price IDs from environment (accessed at runtime)
+// Price IDs from environment (accessed at runtime via getters)
 export const STRIPE_PRICES = {
   get MONTHLY() {
     return process.env.STRIPE_PRICE_MONTHLY!;

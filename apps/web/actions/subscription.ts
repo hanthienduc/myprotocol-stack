@@ -2,7 +2,7 @@
 
 import { createClient } from "@myprotocolstack/database/server";
 import { redirect } from "next/navigation";
-import { stripe, STRIPE_PRICES } from "@/lib/stripe";
+import { getStripe, STRIPE_PRICES } from "@/lib/stripe";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://protocolstack.app";
 
@@ -33,7 +33,7 @@ export async function createCheckoutSession(
 
     if (!customerId) {
       // Create new Stripe customer
-      const customer = await stripe.customers.create({
+      const customer = await getStripe().customers.create({
         email: profile?.email || user.email,
         metadata: {
           supabase_user_id: user.id,
@@ -53,7 +53,7 @@ export async function createCheckoutSession(
       priceType === "monthly" ? STRIPE_PRICES.MONTHLY : STRIPE_PRICES.ANNUAL;
 
     // Create checkout session
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       customer: customerId,
       mode: "subscription",
       payment_method_types: ["card"],
@@ -109,7 +109,7 @@ export async function createPortalSession(): Promise<{
     }
 
     // Create portal session
-    const session = await stripe.billingPortal.sessions.create({
+    const session = await getStripe().billingPortal.sessions.create({
       customer: profile.stripe_customer_id,
       return_url: `${APP_URL}/settings`,
     });

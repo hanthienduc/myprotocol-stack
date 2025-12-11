@@ -2,12 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import Stripe from "stripe";
 import { createAdminClient } from "@myprotocolstack/database/server";
-import { stripe, getPlanFromPriceId, isActiveSubscription } from "@/lib/stripe";
+import { getStripe, getPlanFromPriceId, isActiveSubscription } from "@/lib/stripe";
 
-// Use service role to bypass RLS for webhook updates
-const supabaseAdmin = createAdminClient();
+// Lazy getters for runtime-only values
+function getSupabaseAdmin() {
+  return createAdminClient();
+}
 
-const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET!;
+function getWebhookSecret() {
+  if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    throw new Error("STRIPE_WEBHOOK_SECRET is not set");
+  }
+  return process.env.STRIPE_WEBHOOK_SECRET;
+}
 
 // Events we care about
 const RELEVANT_EVENTS = new Set([
@@ -28,10 +35,12 @@ export async function POST(req: NextRequest) {
   }
 
   let event: Stripe.Event;
+  const stripe = getStripe();
+  const supabaseAdmin = getSupabaseAdmin();
 
   // Verify webhook signature
   try {
-    event = stripe.webhooks.constructEvent(body, signature, WEBHOOK_SECRET);
+    event = stripe.webhooks.constructEvent(body, signature, getWebhookSecret());
   } catch (err) {
     console.error("Webhook signature verification failed:", err);
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
@@ -129,6 +138,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   if (!userId) {
     // Try to find user by customer ID
+    const supabaseAdmin = getSupabaseAdmin();
     const { data: profile } = await supabaseAdmin
       .from("profiles")
       .select("id")
@@ -149,6 +159,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
  * Handle subscription creation or update
  */
 async function handleSubscriptionChange(subscription: Stripe.Subscription) {
+  const supabaseAdmin = getSupabaseAdmin();
   const customerId = subscription.customer as string;
   const subscriptionItem = subscription.items.data[0];
   const priceId = subscriptionItem?.price.id;
@@ -227,6 +238,7 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
  * Handle subscription deletion (canceled and expired)
  */
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
+  const supabaseAdmin = getSupabaseAdmin();
   const customerId = subscription.customer as string;
 
   // Find user
