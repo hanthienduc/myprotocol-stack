@@ -1,8 +1,8 @@
 # MyProtocolStack - Project Roadmap
 
-**Last Updated:** 2025-12-10
-**Version:** 0.2.2
-**Status:** Phase 2 Complete, Phase 5 In Progress (Growth - SEO Foundation & Blog Content Complete)
+**Last Updated:** 2025-12-11
+**Version:** 0.2.3
+**Status:** Phase 3 Complete, Phase 5 In Progress (Growth)
 
 ## Executive Summary
 
@@ -67,22 +67,31 @@ MyProtocolStack is a micro-SaaS for building and tracking personalized health pr
 ---
 
 ### Phase 3: Monetization
-**Status:** 📋 Planned
+**Status:** ✅ Complete
 **Goal:** Launch Pro tier, first revenue
 
 **Deliverables:**
-- Stripe integration
-- Pro tier features (unlimited stacks, advanced analytics)
-- Paywall & feature gating
-- Subscription management UI
-- Upgrade prompts
+- Stripe integration ✅
+- Pro tier features (unlimited stacks, advanced analytics) ✅
+- Paywall & feature gating ✅
+- Subscription management UI ✅
+- Upgrade prompts ✅
 
 **Technical Tasks:**
-- [ ] Stripe Checkout integration
-- [ ] Webhook handlers (checkout.session.completed)
-- [ ] Feature gating logic
-- [ ] Subscription status UI
-- [ ] Upgrade/downgrade flows
+- [x] Stripe Checkout integration (API v2025-11-17.clover)
+- [x] Webhook handlers (checkout.session.completed, customer.subscription.updated, customer.subscription.deleted)
+- [x] Feature gating logic (FREE_LIMITS vs PRO_FEATURES constants)
+- [x] Subscription status UI (pricing modal, subscription card components)
+- [x] Idempotent webhook processing (webhook_events tracking)
+
+**Implementation Summary:**
+- Pricing: $12/mo or $99/yr via Stripe Checkout
+- Feature Gating: Free tier (3 stacks, 7-day history), Pro tier (unlimited, advanced analytics)
+- Database Schema: subscriptions table + webhook_events table for idempotency
+- Server Actions: subscription/route handler for Checkout session creation
+- Webhook Handler: /api/webhooks/stripe route with event signature verification
+- Client Components: pricing-modal.tsx, subscription-card.tsx
+- Stripe as source of truth - webhook-driven subscription sync
 
 ---
 
@@ -446,5 +455,85 @@ MyProtocolStack is a micro-SaaS for building and tracking personalized health pr
 
 ---
 
+## Phase 3: Monetization (Complete - 2025-12-11)
+
+**Status:** ✅ Complete
+
+**Deliverables Completed:**
+
+- Stripe integration with Checkout flow
+- Pro tier feature gating (3 tiers: free, pro monthly, pro annual)
+- Subscription management UI components
+- Webhook-driven subscription sync
+- Idempotent event processing
+
+**Technical Implementation:**
+
+- Stripe API Version: 2025-11-17.clover
+- Pricing: $12/mo or $99/yr
+- Database Schema: profiles.stripe_customer_id + subscriptions + webhook_events tables
+- Feature Gating: FREE_LIMITS constant defines free tier restrictions, PRO_FEATURES for unlimited access
+- Server Actions: subscription creation flow via checkout session
+- Webhook Handler: /api/webhooks/stripe with Stripe signature verification
+- Client Components: pricing-modal.tsx (Stripe Checkout trigger), subscription-card.tsx (status display)
+
+**Key Files:**
+
+- `supabase/migrations/20251211151105_stripe_subscriptions.sql` - Database schema
+- `apps/web/lib/stripe.ts` - Stripe client initialization and price mapping
+- `apps/web/lib/subscription.ts` - Feature gating logic (FREE_LIMITS, PRO_FEATURES, tier helpers)
+- `apps/web/actions/subscription.ts` - Server actions for subscription management
+- `apps/web/app/api/webhooks/stripe/route.ts` - Webhook handler with idempotency
+- `apps/web/components/subscription/pricing-modal.tsx` - Pricing & checkout UI
+- `apps/web/components/subscription/subscription-card.tsx` - Subscription status card
+- `packages/database/src/types.ts` - Subscription TypeScript types
+
+**Feature Gating Details:**
+
+Free Tier:
+
+- maxStacks: 3
+- maxProtocolsPerStack: 10
+- historyDays: 7
+- advancedAnalytics: false
+- aiRecommendations: false
+- wearableSync: false
+
+Pro Tier:
+
+- maxStacks: Infinity
+- maxProtocolsPerStack: Infinity
+- historyDays: Infinity
+- advancedAnalytics: true
+- aiRecommendations: true
+- wearableSync: true
+
+**Database Schema:**
+
+- profiles.stripe_customer_id - Unique Stripe customer reference
+- subscriptions table - Mirrors Stripe subscription state (status, dates, cancel settings)
+- webhook_events table - Idempotency tracking for all webhook events
+- RLS policies - Users can only read own subscriptions, webhook events service-role only
+
+**Subscription Flow:**
+
+1. User clicks "Upgrade to Pro"
+2. Create Stripe Checkout Session via server action
+3. Redirect to Stripe Checkout URL
+4. User completes payment
+5. Stripe sends webhook (checkout.session.completed)
+6. Webhook handler creates subscription record (idempotent via webhook_events)
+7. profiles.subscription_tier updated to 'pro'
+8. User redirected to dashboard with success
+
+**Security:**
+
+- Webhook signature verification (Stripe secret)
+- Idempotency via webhook_events.stripe_event_id unique constraint
+- RLS prevents unauthorized subscription access
+- No card data touches our servers (Stripe handles all PCI compliance)
+
+---
+
 **Maintained By:** MyProtocolStack
-**Last Review:** 2025-12-10
+**Last Review:** 2025-12-11

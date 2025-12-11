@@ -11,7 +11,7 @@
 | Date | 251211 |
 | Description | Configure Stripe products, prices, and customer portal |
 | Priority | P0 |
-| Implementation Status | Not Started |
+| Implementation Status | DONE |
 | Review Status | Draft |
 
 ## Key Insights
@@ -142,22 +142,22 @@ STRIPE_PRICE_ANNUAL=price_xxx
 ```
 
 ## Todo List
-- [ ] Create Stripe account
-- [ ] Create Pro product
-- [ ] Add monthly price ($12)
-- [ ] Add annual price ($99)
-- [ ] Configure customer portal
-- [ ] Add webhook endpoint
-- [ ] Copy API keys
-- [ ] Copy Price IDs
-- [ ] Update .env.local
-- [ ] Update .env.example
+- [x] Create Stripe account
+- [x] Create Pro product
+- [x] Add monthly price ($12)
+- [x] Add annual price ($99)
+- [x] Configure customer portal
+- [x] Add webhook endpoint
+- [x] Copy API keys
+- [x] Copy Price IDs
+- [x] Update .env.local
+- [x] Update .env.example
 
 ## Success Criteria
-- [ ] Product visible in Stripe Dashboard
-- [ ] Both prices active
-- [ ] Webhook endpoint configured
-- [ ] All env vars documented
+- [x] Product visible in Stripe Dashboard
+- [x] Both prices active
+- [x] Webhook endpoint configured
+- [x] All env vars documented
 
 ## Risk Assessment
 | Risk | Likelihood | Impact | Mitigation |

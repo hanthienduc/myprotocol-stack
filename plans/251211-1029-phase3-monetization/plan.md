@@ -9,7 +9,7 @@ Implement Stripe subscription billing for MyProtocolStack with Free/Pro tiers.
 | Date | 251211 |
 | Pricing | $12/mo or $99/yr (17% discount) |
 | Architecture | Webhook-driven, Stripe as source of truth |
-| Status | Not Started |
+| Status | DONE |
 
 ## Tier Structure
 
@@ -26,12 +26,12 @@ Implement Stripe subscription billing for MyProtocolStack with Free/Pro tiers.
 
 | Phase | Name | Status | Priority |
 |-------|------|--------|----------|
-| 01 | [Stripe Setup](./phase-01-stripe-setup.md) | Not Started | P0 |
-| 02 | [Database Schema](./phase-02-database-schema.md) | Not Started | P0 |
-| 03 | [Checkout & Portal](./phase-03-checkout-portal.md) | Not Started | P0 |
-| 04 | [Webhook Handler](./phase-04-webhook-handler.md) | Not Started | P0 |
-| 05 | [Feature Gating](./phase-05-feature-gating.md) | Not Started | P1 |
-| 06 | [Subscription UI](./phase-06-subscription-ui.md) | Not Started | P1 |
+| 01 | [Stripe Setup](./phase-01-stripe-setup.md) | DONE | P0 |
+| 02 | [Database Schema](./phase-02-database-schema.md) | DONE | P0 |
+| 03 | [Checkout & Portal](./phase-03-checkout-portal.md) | DONE | P0 |
+| 04 | [Webhook Handler](./phase-04-webhook-handler.md) | DONE | P0 |
+| 05 | [Feature Gating](./phase-05-feature-gating.md) | DONE | P1 |
+| 06 | [Subscription UI](./phase-06-subscription-ui.md) | DONE | P1 |
 
 ## Key Decisions
 

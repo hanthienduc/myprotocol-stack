@@ -6,6 +6,17 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
+// Subscription status (mirrors Stripe subscription.status)
+export type SubscriptionStatus =
+  | "active"
+  | "past_due"
+  | "canceled"
+  | "unpaid"
+  | "incomplete"
+  | "incomplete_expired"
+  | "trialing"
+  | "paused";
+
 // Onboarding profile stored in profiles.onboarding_profile JSONB
 export type OnboardingProfile = {
   goals: ("sleep" | "focus" | "energy" | "fitness")[];
@@ -144,6 +155,7 @@ export type Database = {
           name: string | null;
           avatar_url: string | null;
           subscription_tier: "free" | "pro";
+          stripe_customer_id: string | null;
           onboarding_completed: boolean;
           onboarding_profile: OnboardingProfile | null;
           favorite_protocol_ids: string[];
@@ -160,6 +172,7 @@ export type Database = {
           name?: string | null;
           avatar_url?: string | null;
           subscription_tier?: "free" | "pro";
+          stripe_customer_id?: string | null;
           onboarding_completed?: boolean;
           onboarding_profile?: OnboardingProfile | null;
           favorite_protocol_ids?: string[];
@@ -176,6 +189,7 @@ export type Database = {
           name?: string | null;
           avatar_url?: string | null;
           subscription_tier?: "free" | "pro";
+          stripe_customer_id?: string | null;
           onboarding_completed?: boolean;
           onboarding_profile?: OnboardingProfile | null;
           favorite_protocol_ids?: string[];
@@ -185,6 +199,79 @@ export type Database = {
           social_links?: { twitter?: string; website?: string } | null;
           created_at?: string;
           updated_at?: string;
+        };
+      };
+      subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          stripe_subscription_id: string;
+          stripe_customer_id: string;
+          status: SubscriptionStatus;
+          price_id: string;
+          current_period_start: string | null;
+          current_period_end: string | null;
+          cancel_at_period_end: boolean;
+          canceled_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          stripe_subscription_id: string;
+          stripe_customer_id: string;
+          status: SubscriptionStatus;
+          price_id: string;
+          current_period_start?: string | null;
+          current_period_end?: string | null;
+          cancel_at_period_end?: boolean;
+          canceled_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          stripe_subscription_id?: string;
+          stripe_customer_id?: string;
+          status?: SubscriptionStatus;
+          price_id?: string;
+          current_period_start?: string | null;
+          current_period_end?: string | null;
+          cancel_at_period_end?: boolean;
+          canceled_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      webhook_events: {
+        Row: {
+          id: string;
+          stripe_event_id: string;
+          event_type: string;
+          status: "processing" | "completed" | "failed";
+          payload: Record<string, unknown> | null;
+          error_details: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          stripe_event_id: string;
+          event_type: string;
+          status?: "processing" | "completed" | "failed";
+          payload?: Record<string, unknown> | null;
+          error_details?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          stripe_event_id?: string;
+          event_type?: string;
+          status?: "processing" | "completed" | "failed";
+          payload?: Record<string, unknown> | null;
+          error_details?: string | null;
+          created_at?: string;
         };
       };
     };
@@ -209,6 +296,10 @@ export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type ProtocolCategory = Database["public"]["Enums"]["category"];
 export type ProtocolDifficulty = Database["public"]["Enums"]["difficulty"];
 export type ExperienceLevel = OnboardingProfile["experience"];
+
+// Subscription types
+export type Subscription = Database["public"]["Tables"]["subscriptions"]["Row"];
+export type WebhookEvent = Database["public"]["Tables"]["webhook_events"]["Row"];
 
 // Badge types
 export type BadgeType = "streak_7" | "streak_30" | "streak_100";

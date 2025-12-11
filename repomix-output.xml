@@ -1,0 +1,928 @@
+This file is a merged representation of a subset of the codebase, containing specifically included files, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of a subset of the repository's contents that is considered the most important context.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Only files matching these patterns are included: supabase/**
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+supabase/
+  migrations/
+    20251209153234_add_onboarding_columns.sql
+    20251209163058_add_favorite_protocol_ids.sql
+    20251209171037_create_streak_tables.sql
+    20251209180818_create_notification_tables.sql
+    20251210110436_add_fulltext_search_and_recently_viewed.sql
+    20251210111217_add_tags_and_saved_presets.sql
+    20251210225128_add_public_profiles.sql
+    20251210235342_add_content_reports.sql
+    20251211151105_stripe_subscriptions.sql
+  schema.sql
+  seeds.sql
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="supabase/migrations/20251211151105_stripe_subscriptions.sql">
+-- Phase 3: Stripe Subscriptions Schema
+-- Adds subscription tracking for monetization
+
+-- Add stripe_customer_id to profiles
+ALTER TABLE profiles
+ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT UNIQUE;
+
+-- Create index for customer lookup
+CREATE INDEX IF NOT EXISTS idx_profiles_stripe_customer_id
+ON profiles(stripe_customer_id);
+
+-- Subscriptions table (mirrors Stripe subscription state)
+CREATE TABLE IF NOT EXISTS subscriptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  stripe_subscription_id TEXT UNIQUE NOT NULL,
+  stripe_customer_id TEXT NOT NULL,
+  status TEXT NOT NULL, -- active, past_due, canceled, unpaid, incomplete, trialing
+  price_id TEXT NOT NULL,
+  current_period_start TIMESTAMPTZ,
+  current_period_end TIMESTAMPTZ,
+  cancel_at_period_end BOOLEAN DEFAULT FALSE,
+  canceled_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for subscriptions
+CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_stripe_customer_id ON subscriptions(stripe_customer_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status);
+
+-- Webhook events table (idempotency tracking)
+CREATE TABLE IF NOT EXISTS webhook_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  stripe_event_id TEXT UNIQUE NOT NULL,
+  event_type TEXT NOT NULL,
+  status TEXT DEFAULT 'processing', -- processing, completed, failed
+  payload JSONB,
+  error_details TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Index for event lookup
+CREATE INDEX IF NOT EXISTS idx_webhook_events_stripe_event_id ON webhook_events(stripe_event_id);
+
+-- Trigger for subscriptions.updated_at
+CREATE OR REPLACE FUNCTION update_subscription_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER subscriptions_updated_at
+  BEFORE UPDATE ON subscriptions
+  FOR EACH ROW EXECUTE FUNCTION update_subscription_updated_at();
+
+-- Enable RLS
+ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE webhook_events ENABLE ROW LEVEL SECURITY;
+
+-- Subscriptions: Users can read their own (no write - webhook only)
+CREATE POLICY "Users can read own subscriptions"
+  ON subscriptions
+  FOR SELECT
+  USING (auth.uid() = user_id);
+
+-- Webhook events: No user access (service role only)
+-- No policy = deny by default, service role bypasses RLS
+</file>
+
+<file path="supabase/migrations/20251209153234_add_onboarding_columns.sql">
+-- Add onboarding columns to profiles table
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN DEFAULT FALSE;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS onboarding_profile JSONB;
+
+-- Create index for faster onboarding status lookups
+CREATE INDEX IF NOT EXISTS idx_profiles_onboarding_completed ON profiles(onboarding_completed);
+
+-- Comment for documentation
+COMMENT ON COLUMN profiles.onboarding_completed IS 'Whether user has completed the onboarding quiz';
+COMMENT ON COLUMN profiles.onboarding_profile IS 'Stores onboarding quiz answers: {goals, experience, time_minutes, completed_at}';
+</file>
+
+<file path="supabase/migrations/20251209163058_add_favorite_protocol_ids.sql">
+-- Add favorite_protocol_ids column to profiles table
+-- Security: Protected by existing RLS policy "Users can update own profile" (auth.uid() = id)
+-- See supabase/schema.sql lines 90-92 for policy definition
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS favorite_protocol_ids UUID[] DEFAULT '{}';
+
+-- Comment for documentation
+COMMENT ON COLUMN profiles.favorite_protocol_ids IS 'Array of protocol UUIDs that user has favorited';
+</file>
+
+<file path="supabase/migrations/20251209171037_create_streak_tables.sql">
+-- Streak tracking per user per stack
+CREATE TABLE user_streaks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  stack_id UUID REFERENCES stacks(id) ON DELETE CASCADE NOT NULL,
+  current_streak INT DEFAULT 0,
+  longest_streak INT DEFAULT 0,
+  last_activity_date DATE,
+  grace_period_used BOOLEAN DEFAULT FALSE,
+  timezone TEXT DEFAULT 'UTC',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, stack_id)
+);
+
+-- Badge tracking
+CREATE TABLE user_badges (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  badge_type TEXT NOT NULL, -- 'streak_7', 'streak_30', 'streak_100'
+  stack_id UUID REFERENCES stacks(id) ON DELETE CASCADE,
+  unlocked_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, badge_type, stack_id)
+);
+
+-- Indexes
+CREATE INDEX idx_user_streaks_user_id ON user_streaks(user_id);
+CREATE INDEX idx_user_streaks_stack_id ON user_streaks(stack_id);
+CREATE INDEX idx_user_badges_user_id ON user_badges(user_id);
+CREATE INDEX idx_user_badges_stack_id ON user_badges(stack_id);
+
+-- RLS
+ALTER TABLE user_streaks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_badges ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own streaks"
+  ON user_streaks FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own streaks"
+  ON user_streaks FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own streaks"
+  ON user_streaks FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own streaks"
+  ON user_streaks FOR DELETE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can view own badges"
+  ON user_badges FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own badges"
+  ON user_badges FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own badges"
+  ON user_badges FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own badges"
+  ON user_badges FOR DELETE USING (auth.uid() = user_id);
+</file>
+
+<file path="supabase/migrations/20251209180818_create_notification_tables.sql">
+-- Migration: Create notification system tables
+-- Phase 5: Notification System
+
+-- Notification preferences table
+CREATE TABLE notification_preferences (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE UNIQUE,
+  email_daily_reminder BOOLEAN DEFAULT TRUE,
+  email_weekly_summary BOOLEAN DEFAULT TRUE,
+  email_streak_alerts BOOLEAN DEFAULT TRUE,
+  push_enabled BOOLEAN DEFAULT FALSE,
+  push_daily_reminder BOOLEAN DEFAULT FALSE,
+  push_streak_alerts BOOLEAN DEFAULT TRUE,
+  reminder_time TIME DEFAULT '09:00',
+  timezone TEXT DEFAULT 'UTC',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Web Push subscriptions table
+CREATE TABLE push_subscriptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  endpoint TEXT NOT NULL UNIQUE,
+  keys_p256dh TEXT NOT NULL,
+  keys_auth TEXT NOT NULL,
+  user_agent TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for performance
+CREATE INDEX idx_notification_prefs_user ON notification_preferences(user_id);
+CREATE INDEX idx_push_subs_user ON push_subscriptions(user_id);
+
+-- Enable Row Level Security
+ALTER TABLE notification_preferences ENABLE ROW LEVEL SECURITY;
+ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies: Users can only access their own data
+CREATE POLICY "Users can CRUD own notification preferences"
+  ON notification_preferences FOR ALL USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can CRUD own push subscriptions"
+  ON push_subscriptions FOR ALL USING (auth.uid() = user_id);
+
+-- Function to auto-update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_notification_prefs_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger for auto-update
+CREATE TRIGGER notification_prefs_updated_at
+  BEFORE UPDATE ON notification_preferences
+  FOR EACH ROW EXECUTE FUNCTION update_notification_prefs_updated_at();
+</file>
+
+<file path="supabase/migrations/20251210110436_add_fulltext_search_and_recently_viewed.sql">
+-- Enable pg_trgm extension for fuzzy text search
+create extension if not exists pg_trgm;
+
+-- Add GIN index for trigram search on protocols
+create index idx_protocols_name_trgm on protocols using gin (name gin_trgm_ops);
+create index idx_protocols_description_trgm on protocols using gin (description gin_trgm_ops);
+
+-- Add full-text search vector column
+alter table protocols add column if not exists search_vector tsvector
+  generated always as (
+    setweight(to_tsvector('english', coalesce(name, '')), 'A') ||
+    setweight(to_tsvector('english', coalesce(description, '')), 'B') ||
+    setweight(to_tsvector('english', coalesce(science_summary, '')), 'C')
+  ) stored;
+
+-- Add GIN index for full-text search
+create index idx_protocols_search_vector on protocols using gin (search_vector);
+
+-- Create recently_viewed table for tracking user protocol views
+create table if not exists recently_viewed (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid not null references profiles(id) on delete cascade,
+  protocol_id uuid not null references protocols(id) on delete cascade,
+  viewed_at timestamptz not null default now(),
+  unique(user_id, protocol_id)
+);
+
+-- Index for efficient querying
+create index idx_recently_viewed_user_id on recently_viewed(user_id);
+create index idx_recently_viewed_viewed_at on recently_viewed(viewed_at desc);
+
+-- RLS for recently_viewed
+alter table recently_viewed enable row level security;
+
+create policy "Users can view own recently viewed"
+  on recently_viewed for select
+  using (auth.uid() = user_id);
+
+create policy "Users can insert own recently viewed"
+  on recently_viewed for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can update own recently viewed"
+  on recently_viewed for update
+  using (auth.uid() = user_id);
+
+create policy "Users can delete own recently viewed"
+  on recently_viewed for delete
+  using (auth.uid() = user_id);
+
+-- Function to search protocols with fuzzy matching
+create or replace function search_protocols(search_query text)
+returns table (
+  id uuid,
+  name text,
+  description text,
+  category category,
+  difficulty difficulty,
+  duration_minutes integer,
+  frequency frequency,
+  science_summary text,
+  steps text[],
+  created_at timestamptz,
+  relevance float
+) as $$
+begin
+  return query
+  select
+    p.id,
+    p.name,
+    p.description,
+    p.category,
+    p.difficulty,
+    p.duration_minutes,
+    p.frequency,
+    p.science_summary,
+    p.steps,
+    p.created_at,
+    greatest(
+      similarity(p.name, search_query),
+      similarity(p.description, search_query) * 0.8,
+      ts_rank(p.search_vector, plainto_tsquery('english', search_query)) * 0.5
+    ) as relevance
+  from protocols p
+  where
+    p.name % search_query
+    or p.description % search_query
+    or p.search_vector @@ plainto_tsquery('english', search_query)
+  order by relevance desc;
+end;
+$$ language plpgsql;
+
+-- Function to upsert recently viewed (update timestamp if exists)
+create or replace function upsert_recently_viewed(p_user_id uuid, p_protocol_id uuid)
+returns void as $$
+begin
+  insert into recently_viewed (user_id, protocol_id, viewed_at)
+  values (p_user_id, p_protocol_id, now())
+  on conflict (user_id, protocol_id)
+  do update set viewed_at = now();
+end;
+$$ language plpgsql security definer;
+</file>
+
+<file path="supabase/migrations/20251210111217_add_tags_and_saved_presets.sql">
+-- Add tags column to protocols (array of strings for flexibility)
+alter table protocols add column if not exists tags text[] not null default '{}';
+
+-- Create index for tag queries
+create index idx_protocols_tags on protocols using gin (tags);
+
+-- Predefined tags to add to protocols
+-- These will be populated via a separate seed update
+
+-- Create saved_filter_presets table for user-saved searches
+create table if not exists saved_filter_presets (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid not null references profiles(id) on delete cascade,
+  name text not null,
+  filters jsonb not null default '{}',
+  sort_field text,
+  sort_order text default 'asc',
+  is_default boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- Indexes
+create index idx_saved_filter_presets_user_id on saved_filter_presets(user_id);
+
+-- RLS for saved_filter_presets
+alter table saved_filter_presets enable row level security;
+
+create policy "Users can view own saved presets"
+  on saved_filter_presets for select
+  using (auth.uid() = user_id);
+
+create policy "Users can insert own saved presets"
+  on saved_filter_presets for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can update own saved presets"
+  on saved_filter_presets for update
+  using (auth.uid() = user_id);
+
+create policy "Users can delete own saved presets"
+  on saved_filter_presets for delete
+  using (auth.uid() = user_id);
+
+-- Trigger to update updated_at
+create trigger saved_filter_presets_updated_at
+  before update on saved_filter_presets
+  for each row execute procedure update_updated_at();
+
+-- Function to find similar protocols based on category, difficulty, and tags
+create or replace function find_similar_protocols(
+  p_protocol_id uuid,
+  p_limit integer default 3
+)
+returns table (
+  id uuid,
+  name text,
+  description text,
+  category category,
+  difficulty difficulty,
+  duration_minutes integer,
+  frequency frequency,
+  tags text[],
+  similarity_score integer
+) as $$
+declare
+  v_category category;
+  v_difficulty difficulty;
+  v_tags text[];
+  v_duration integer;
+begin
+  -- Get the source protocol's attributes
+  select p.category, p.difficulty, p.tags, p.duration_minutes
+  into v_category, v_difficulty, v_tags, v_duration
+  from protocols p
+  where p.id = p_protocol_id;
+
+  return query
+  select
+    p.id,
+    p.name,
+    p.description,
+    p.category,
+    p.difficulty,
+    p.duration_minutes,
+    p.frequency,
+    p.tags,
+    -- Calculate similarity score (higher = more similar)
+    (
+      case when p.category = v_category then 3 else 0 end +
+      case when p.difficulty = v_difficulty then 2 else 0 end +
+      case when p.duration_minutes is not null and v_duration is not null
+           and abs(p.duration_minutes - v_duration) <= 15 then 1 else 0 end +
+      coalesce(array_length(array(select unnest(p.tags) intersect select unnest(v_tags)), 1), 0)
+    ) as similarity_score
+  from protocols p
+  where p.id != p_protocol_id
+  order by similarity_score desc, p.name asc
+  limit p_limit;
+end;
+$$ language plpgsql;
+
+-- Update protocols with tags based on their characteristics
+-- Morning-related
+update protocols set tags = array_append(tags, 'morning')
+where name ilike '%morning%' or name ilike '%wake%' or description ilike '%first hour%';
+
+-- Evening/Night-related
+update protocols set tags = array_append(tags, 'evening')
+where name ilike '%evening%' or name ilike '%night%' or name ilike '%sleep%' or category = 'sleep';
+
+-- Quick protocols (<15 min)
+update protocols set tags = array_append(tags, 'quick')
+where duration_minutes is not null and duration_minutes <= 15;
+
+-- Science-backed (has science summary)
+update protocols set tags = array_append(tags, 'science-backed')
+where science_summary is not null and science_summary != '';
+
+-- Beginner-friendly
+update protocols set tags = array_append(tags, 'beginner-friendly')
+where difficulty = 'easy';
+
+-- Advanced
+update protocols set tags = array_append(tags, 'advanced')
+where difficulty = 'hard';
+
+-- No equipment needed (based on common patterns)
+update protocols set tags = array_append(tags, 'no-equipment')
+where name ilike '%sunlight%' or name ilike '%breathing%' or name ilike '%walk%'
+   or name ilike '%meditation%' or name ilike '%fasting%';
+
+-- Outdoor
+update protocols set tags = array_append(tags, 'outdoor')
+where name ilike '%sunlight%' or name ilike '%walk%' or name ilike '%outdoor%'
+   or description ilike '%outside%';
+
+-- Remove duplicates from tags
+update protocols set tags = (
+  select array_agg(distinct t)
+  from unnest(tags) as t
+);
+</file>
+
+<file path="supabase/migrations/20251210225128_add_public_profiles.sql">
+-- Migration: Add public profiles feature
+-- Add username, is_public, bio, social_links to profiles
+-- Add is_public, view_count to stacks
+
+-- Modify profiles table
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS username VARCHAR(50) UNIQUE,
+  ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS bio TEXT,
+  ADD COLUMN IF NOT EXISTS social_links JSONB DEFAULT '{}';
+
+-- Add constraint for URL-safe usernames
+ALTER TABLE public.profiles
+  ADD CONSTRAINT username_format CHECK (
+    username IS NULL OR username ~ '^[a-z0-9_-]{3,50}$'
+  );
+
+-- Modify stacks table
+ALTER TABLE public.stacks
+  ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS view_count INTEGER DEFAULT 0;
+
+-- Index for public profile lookups
+CREATE INDEX IF NOT EXISTS idx_profiles_username ON public.profiles(username) WHERE username IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_profiles_public ON public.profiles(is_public) WHERE is_public = TRUE;
+CREATE INDEX IF NOT EXISTS idx_stacks_public ON public.stacks(is_public) WHERE is_public = TRUE;
+
+-- RLS: Allow public profile reads (use CREATE OR REPLACE pattern via DO block)
+DO $$
+BEGIN
+  -- Drop and recreate profile policy
+  DROP POLICY IF EXISTS "Anyone can view public profiles" ON public.profiles;
+  CREATE POLICY "Anyone can view public profiles"
+    ON public.profiles FOR SELECT
+    USING (is_public = TRUE OR auth.uid() = id);
+
+  -- Drop and recreate stack policy
+  DROP POLICY IF EXISTS "Anyone can view public stacks" ON public.stacks;
+  CREATE POLICY "Anyone can view public stacks"
+    ON public.stacks FOR SELECT
+    USING (is_public = TRUE OR auth.uid() = user_id);
+END $$;
+
+-- Function to increment view count (p_ prefix to avoid parameter shadowing)
+CREATE OR REPLACE FUNCTION increment_view_count(p_stack_id UUID)
+RETURNS void AS $$
+BEGIN
+  UPDATE public.stacks
+  SET view_count = COALESCE(view_count, 0) + 1
+  WHERE id = p_stack_id AND is_public = TRUE;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+</file>
+
+<file path="supabase/migrations/20251210235342_add_content_reports.sql">
+-- Migration: Add content reports table for flagging inappropriate content
+
+-- Create content_reports table
+CREATE TABLE IF NOT EXISTS public.content_reports (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  reporter_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  content_type VARCHAR(20) NOT NULL CHECK (content_type IN ('profile', 'stack')),
+  content_id UUID NOT NULL,
+  reason VARCHAR(50) NOT NULL CHECK (reason IN ('inappropriate', 'spam', 'misleading', 'copyright', 'other')),
+  details TEXT,
+  status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'reviewed', 'resolved', 'dismissed')),
+  reviewed_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  reviewed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+-- Index for quick lookups
+CREATE INDEX IF NOT EXISTS idx_content_reports_status ON public.content_reports(status);
+CREATE INDEX IF NOT EXISTS idx_content_reports_content ON public.content_reports(content_type, content_id);
+
+-- Prevent duplicate reports from same user for same content
+CREATE UNIQUE INDEX IF NOT EXISTS idx_content_reports_unique
+  ON public.content_reports(reporter_id, content_type, content_id)
+  WHERE reporter_id IS NOT NULL;
+
+-- RLS policies
+ALTER TABLE public.content_reports ENABLE ROW LEVEL SECURITY;
+
+-- Anyone can insert reports (even anonymous)
+CREATE POLICY "Anyone can create reports"
+  ON public.content_reports FOR INSERT
+  WITH CHECK (true);
+
+-- Users can view their own reports
+CREATE POLICY "Users can view own reports"
+  ON public.content_reports FOR SELECT
+  USING (reporter_id = auth.uid());
+
+-- Admin can view all reports (add admin check later if needed)
+-- For now, only allow users to see their own reports
+</file>
+
+<file path="supabase/schema.sql">
+-- MyProtocolStack Database Schema
+-- Run this in Supabase SQL Editor
+
+-- Enable UUID extension
+create extension if not exists "uuid-ossp";
+
+-- Enums
+create type category as enum ('sleep', 'focus', 'energy', 'fitness');
+create type difficulty as enum ('easy', 'medium', 'hard');
+create type frequency as enum ('daily', 'weekly');
+create type schedule as enum ('daily', 'weekdays', 'weekends', 'custom');
+create type subscription_tier as enum ('free', 'pro');
+
+-- Protocols table (pre-populated, read-only for users)
+create table protocols (
+  id uuid primary key default uuid_generate_v4(),
+  name text not null,
+  description text not null,
+  category category not null,
+  difficulty difficulty not null default 'medium',
+  duration_minutes integer,
+  frequency frequency not null default 'daily',
+  science_summary text,
+  steps text[] not null default '{}',
+  created_at timestamptz not null default now()
+);
+
+-- Profiles table (linked to auth.users)
+create table profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  email text not null,
+  name text,
+  avatar_url text,
+  subscription_tier subscription_tier not null default 'free',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- Stacks table (user-created protocol combinations)
+create table stacks (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid not null references profiles(id) on delete cascade,
+  name text not null,
+  description text,
+  protocol_ids uuid[] not null default '{}',
+  schedule schedule not null default 'daily',
+  custom_days integer[], -- 0=Sun, 1=Mon, etc.
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- Tracking table (daily completion records)
+create table tracking (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid not null references profiles(id) on delete cascade,
+  stack_id uuid not null references stacks(id) on delete cascade,
+  protocol_id uuid not null references protocols(id) on delete cascade,
+  date date not null,
+  completed boolean not null default false,
+  completed_at timestamptz,
+  notes text,
+  created_at timestamptz not null default now(),
+  unique(user_id, stack_id, protocol_id, date)
+);
+
+-- Indexes
+create index idx_stacks_user_id on stacks(user_id);
+create index idx_tracking_user_id on tracking(user_id);
+create index idx_tracking_date on tracking(date);
+create index idx_tracking_user_date on tracking(user_id, date);
+create index idx_protocols_category on protocols(category);
+
+-- RLS Policies
+alter table protocols enable row level security;
+alter table profiles enable row level security;
+alter table stacks enable row level security;
+alter table tracking enable row level security;
+
+-- Protocols: anyone can read
+create policy "Protocols are viewable by everyone"
+  on protocols for select
+  using (true);
+
+-- Profiles: users can only see/edit their own
+create policy "Users can view own profile"
+  on profiles for select
+  using (auth.uid() = id);
+
+create policy "Users can update own profile"
+  on profiles for update
+  using (auth.uid() = id);
+
+-- Stacks: users can CRUD their own
+create policy "Users can view own stacks"
+  on stacks for select
+  using (auth.uid() = user_id);
+
+create policy "Users can create own stacks"
+  on stacks for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can update own stacks"
+  on stacks for update
+  using (auth.uid() = user_id);
+
+create policy "Users can delete own stacks"
+  on stacks for delete
+  using (auth.uid() = user_id);
+
+-- Tracking: users can CRUD their own
+create policy "Users can view own tracking"
+  on tracking for select
+  using (auth.uid() = user_id);
+
+create policy "Users can create own tracking"
+  on tracking for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can update own tracking"
+  on tracking for update
+  using (auth.uid() = user_id);
+
+create policy "Users can delete own tracking"
+  on tracking for delete
+  using (auth.uid() = user_id);
+
+-- Function to create profile on signup
+create or replace function public.handle_new_user()
+returns trigger as $$
+begin
+  insert into public.profiles (id, email, name, avatar_url)
+  values (
+    new.id,
+    new.email,
+    new.raw_user_meta_data->>'name',
+    new.raw_user_meta_data->>'avatar_url'
+  );
+  return new;
+end;
+$$ language plpgsql security definer;
+
+-- Trigger for new user signup
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
+
+-- Function to update updated_at timestamp
+create or replace function update_updated_at()
+returns trigger as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$ language plpgsql;
+
+create trigger stacks_updated_at
+  before update on stacks
+  for each row execute procedure update_updated_at();
+
+create trigger profiles_updated_at
+  before update on profiles
+  for each row execute procedure update_updated_at();
+</file>
+
+<file path="supabase/seeds.sql">
+-- Seed data for MyProtocolStack
+-- Run this after schema.sql
+
+-- SLEEP PROTOCOLS (8)
+INSERT INTO protocols (name, description, category, difficulty, duration_minutes, frequency, science_summary, steps) VALUES
+('Morning Sunlight Exposure', 'Get 10-30 minutes of natural light within 1 hour of waking to set your circadian rhythm.', 'sleep', 'easy', 20, 'daily',
+'Morning light exposure triggers a cortisol pulse that helps you wake up and sets a timer for melatonin release ~16 hours later. Research shows this is the most powerful tool for regulating sleep-wake cycles.',
+ARRAY['Wake up and go outside within 30-60 minutes', 'Face the sun (no sunglasses) for 10-30 minutes', 'Cloudy day? Stay out longer (30+ min)', 'Do this even on weekends']),
+
+('Caffeine Cutoff', 'Stop consuming caffeine at least 8-10 hours before your target bedtime.', 'sleep', 'medium', NULL, 'daily',
+'Caffeine has a half-life of 5-6 hours, meaning half is still in your system after that time. Even if you can fall asleep, caffeine reduces deep sleep quality by up to 20%.',
+ARRAY['Calculate cutoff time (bedtime - 10 hours)', 'Set a daily alarm as reminder', 'Switch to decaf or herbal tea after cutoff', 'Watch for hidden caffeine (chocolate, some medications)']),
+
+('Blue Light Blocking', 'Reduce blue light exposure 2-3 hours before bed to protect melatonin production.', 'sleep', 'easy', NULL, 'daily',
+'Blue wavelengths (450-490nm) suppress melatonin production most effectively. Even brief exposure can delay sleep onset and reduce sleep quality.',
+ARRAY['Enable night mode on all devices after sunset', 'Use blue light blocking glasses', 'Dim overhead lights, use warm-toned lamps', 'Avoid screens 1 hour before bed if possible']),
+
+('Temperature Optimization', 'Keep your bedroom between 65-68°F (18-20°C) for optimal sleep.', 'sleep', 'easy', NULL, 'daily',
+'Core body temperature needs to drop 2-3°F for sleep initiation. A cool room facilitates this drop and improves both sleep onset and deep sleep quality.',
+ARRAY['Set thermostat to 65-68°F (18-20°C)', 'Use breathable bedding materials', 'Consider a cooling mattress pad', 'Take a warm shower 1-2 hours before bed (causes rebound cooling)']),
+
+('Consistent Sleep Schedule', 'Go to bed and wake up at the same time every day, including weekends.', 'sleep', 'hard', NULL, 'daily',
+'Your circadian rhythm thrives on consistency. Irregular sleep schedules are associated with worse cardiovascular health, metabolism, and mood.',
+ARRAY['Choose a realistic wake time you can maintain', 'Set both a bedtime and wake alarm', 'Keep weekend variation under 1 hour', 'Adjust gradually (15-30 min per day)']),
+
+('Magnesium Before Bed', 'Take 200-400mg of magnesium glycinate or threonate 30-60 minutes before bed.', 'sleep', 'easy', NULL, 'daily',
+'Magnesium activates GABA receptors, promoting relaxation. Most people are deficient. Glycinate and threonate forms are better absorbed and gentler on digestion.',
+ARRAY['Take 200-400mg magnesium glycinate or threonate', 'Time it 30-60 minutes before bed', 'Start with lower dose, increase if needed', 'Take with a small amount of food']),
+
+('Screen-Free Wind Down', 'Spend the last hour before bed without screens.', 'sleep', 'medium', 60, 'daily',
+'Beyond blue light, screens provide stimulating content that activates the brain. A screen-free period allows natural mental wind-down and melatonin release.',
+ARRAY['Set a "screens off" alarm 1 hour before bed', 'Prepare relaxing alternatives (books, journaling)', 'Charge devices outside the bedroom', 'Use this time for hygiene routine, stretching, or reading']),
+
+('Evening Walk', 'Take a 10-20 minute walk after dinner to aid digestion and signal day''s end.', 'sleep', 'easy', 15, 'daily',
+'Light movement after eating improves glucose response and digestion. Evening walks also provide a psychological transition from day to night mode.',
+ARRAY['Walk within 30-60 minutes after dinner', 'Keep it gentle - not exercise', 'Leave phone at home or on silent', '10-20 minutes is sufficient']);
+
+-- FOCUS PROTOCOLS (7)
+INSERT INTO protocols (name, description, category, difficulty, duration_minutes, frequency, science_summary, steps) VALUES
+('90-Minute Deep Work Blocks', 'Structure focused work in 90-minute cycles aligned with your ultradian rhythm.', 'focus', 'medium', 90, 'daily',
+'The brain operates in 90-minute ultradian cycles. Working with these natural rhythms produces better focus than arbitrary time blocks.',
+ARRAY['Choose your most important task', 'Set a 90-minute timer', 'Eliminate all distractions', 'Take a 15-20 minute break between cycles', 'Aim for 2-3 deep work blocks per day']),
+
+('Strategic Caffeine Timing', 'Delay morning caffeine 90-120 minutes after waking for optimal effect.', 'focus', 'medium', NULL, 'daily',
+'Adenosine (sleepiness chemical) is highest upon waking. Waiting allows natural clearance, then caffeine blocks any residual adenosine for cleaner energy.',
+ARRAY['Wait 90-120 minutes after waking for caffeine', 'Drink water first thing instead', 'Get morning light during this window', 'Time caffeine for when you need focus most']),
+
+('Cold Exposure for Alertness', 'Use cold water exposure (face, shower, or immersion) to boost dopamine and alertness.', 'focus', 'hard', 5, 'daily',
+'Cold exposure triggers a 200-300% increase in dopamine that lasts 3+ hours. This provides sustained alertness without the crash of caffeine.',
+ARRAY['Start with cold water on face/neck', 'Progress to 30-60 seconds cold at end of shower', 'Eventually try 2-5 minutes cold immersion', 'Do in morning for all-day alertness']),
+
+('Movement Breaks', 'Take a 5-10 minute movement break every 90 minutes.', 'focus', 'easy', 10, 'daily',
+'Sitting for extended periods reduces blood flow to the brain. Brief movement restores focus, improves mood, and prevents physical tension.',
+ARRAY['Set a timer for every 90 minutes', 'Stand, stretch, or walk briefly', 'Do a few jumping jacks or squats', 'Step outside if possible', 'Return to work refreshed']),
+
+('Ultradian Rhythm Work', 'Schedule your most demanding cognitive work during your peak ultradian cycles.', 'focus', 'medium', NULL, 'daily',
+'Most people have peak cognitive performance 2-4 hours after waking. Scheduling important work during these windows maximizes output.',
+ARRAY['Track your energy levels for a week', 'Identify your peak performance windows', 'Schedule creative/analytical work during peaks', 'Save routine tasks for energy dips']),
+
+('Environment Optimization', 'Design your workspace to minimize distractions and maximize focus.', 'focus', 'easy', NULL, 'weekly',
+'Environmental cues significantly impact focus. A dedicated, optimized workspace trains your brain to enter "work mode" automatically.',
+ARRAY['Remove phone from sight or use focus mode', 'Use website blockers during deep work', 'Keep desk clear of non-essential items', 'Use noise-canceling headphones or white noise', 'Ensure good lighting (natural if possible)']),
+
+('Phone-Free Focus Blocks', 'Put your phone in another room during focused work sessions.', 'focus', 'medium', NULL, 'daily',
+'Even the presence of a smartphone reduces cognitive capacity, even when off. Physical separation eliminates the temptation to check.',
+ARRAY['Designate a phone parking spot outside your workspace', 'Set phone to Do Not Disturb', 'Tell important contacts your focus schedule', 'Check phone only during breaks']);
+
+-- ENERGY PROTOCOLS (8)
+INSERT INTO protocols (name, description, category, difficulty, duration_minutes, frequency, science_summary, steps) VALUES
+('16:8 Intermittent Fasting', 'Eat within an 8-hour window and fast for 16 hours.', 'energy', 'medium', NULL, 'daily',
+'Time-restricted eating improves metabolic flexibility, insulin sensitivity, and cellular cleanup (autophagy). Many report more stable energy throughout the day.',
+ARRAY['Choose your 8-hour eating window', 'Stop eating 3+ hours before bed', 'Stay hydrated during fasting (water, black coffee, tea)', 'Break fast with protein and healthy fats', 'Start with 12:12 and work up to 16:8']),
+
+('Protein-First Breakfast', 'Consume 30-50g of protein within 1 hour of your first meal.', 'energy', 'easy', NULL, 'daily',
+'Protein stabilizes blood sugar, reduces cravings, and supports muscle maintenance. Starting with protein sets up better energy for the day.',
+ARRAY['Aim for 30-50g protein at first meal', 'Good sources: eggs, Greek yogurt, meat, fish', 'Prepare protein options in advance', 'Combine with healthy fats and fiber']),
+
+('Blood Sugar Stability', 'Eat to minimize blood sugar spikes throughout the day.', 'energy', 'medium', NULL, 'daily',
+'Blood sugar spikes cause energy crashes. Stable blood sugar provides consistent energy, better focus, and reduced cravings.',
+ARRAY['Eat protein and fat before carbs', 'Add fiber to every meal', 'Walk for 10-15 min after meals', 'Avoid sugary drinks and processed foods', 'Choose whole grains over refined']),
+
+('Hydration Protocol', 'Drink adequate water throughout the day, starting with 16oz upon waking.', 'energy', 'easy', NULL, 'daily',
+'Even mild dehydration (2%) impairs cognitive function and energy. Hydrating first thing replaces overnight losses and kickstarts metabolism.',
+ARRAY['Drink 16oz (500ml) water upon waking', 'Aim for half your bodyweight in ounces daily', 'Spread intake throughout the day', 'Add electrolytes if very active', 'Monitor urine color (pale yellow = good)']),
+
+('Seed Oil Elimination', 'Avoid industrial seed oils (canola, soybean, corn, sunflower, safflower).', 'energy', 'hard', NULL, 'daily',
+'Seed oils are high in omega-6 fatty acids, which promote inflammation when consumed in excess. Many report improved energy and reduced inflammation.',
+ARRAY['Read ingredient labels carefully', 'Cook with olive oil, avocado oil, butter, or coconut oil', 'Avoid fried restaurant food', 'Choose whole foods over processed', 'Make your own salad dressings']),
+
+('Afternoon Sunlight', 'Get 10-20 minutes of afternoon/evening sunlight to support circadian rhythm.', 'energy', 'easy', 15, 'daily',
+'Afternoon light exposure helps your body anticipate nightfall and supports the natural cortisol-to-melatonin transition for better sleep.',
+ARRAY['Go outside in late afternoon (3-6 PM)', 'Even overcast light is beneficial', 'Combine with a short walk', 'No sunglasses for maximum effect']),
+
+('Power Nap Protocol', 'Take a 10-20 minute nap before 3 PM if needed for energy restoration.', 'energy', 'easy', 20, 'daily',
+'Short naps restore alertness without entering deep sleep, which causes grogginess. Napping before 3 PM prevents interference with nighttime sleep.',
+ARRAY['Nap between 1-3 PM if possible', 'Keep it to 10-20 minutes', 'Set an alarm to prevent oversleeping', 'Find a quiet, dark place', 'Consider a "nappuccino" (caffeine before nap)']),
+
+('Evening Meal Timing', 'Finish eating 3+ hours before bedtime for better sleep and energy.', 'energy', 'medium', NULL, 'daily',
+'Late eating disrupts sleep quality and glucose regulation. Finishing early allows digestion to complete before sleep.',
+ARRAY['Calculate your meal cutoff time', 'Plan dinner timing accordingly', 'If hungry, choose light protein snack', 'Stay hydrated but reduce liquids before bed']);
+
+-- FITNESS PROTOCOLS (7)
+INSERT INTO protocols (name, description, category, difficulty, duration_minutes, frequency, science_summary, steps) VALUES
+('Zone 2 Cardio', 'Perform 150-180 minutes per week of low-intensity aerobic exercise.', 'fitness', 'medium', 45, 'weekly',
+'Zone 2 training builds mitochondrial density and fat oxidation capacity. It''s the foundation of metabolic health and supports all other training.',
+ARRAY['Calculate Zone 2 heart rate (roughly 180 minus age)', 'Choose: walking, cycling, swimming, rowing', 'Maintain conversational pace', 'Aim for 3-4 sessions of 30-45 minutes', 'Can be done daily without recovery concerns']),
+
+('Resistance Training', 'Lift weights or do bodyweight training 2-4 times per week.', 'fitness', 'medium', 45, 'weekly',
+'Resistance training is the most effective intervention for maintaining muscle mass, bone density, and metabolic health as we age.',
+ARRAY['Train 2-4 times per week', 'Focus on compound movements', 'Progressively increase weight or reps', 'Allow 48 hours recovery per muscle group', 'Prioritize form over weight']),
+
+('Daily Walking', 'Accumulate 7,000-10,000 steps throughout the day.', 'fitness', 'easy', NULL, 'daily',
+'Walking is the most underrated exercise. Research shows 7,000-10,000 daily steps significantly reduces all-cause mortality and improves metabolic health.',
+ARRAY['Track steps with phone or watch', 'Take walking meetings when possible', 'Park farther away', 'Use stairs instead of elevator', 'Take a post-meal walk']),
+
+('Deliberate Cold/Heat Exposure', 'Use sauna and/or cold exposure for recovery and adaptation.', 'fitness', 'hard', 20, 'weekly',
+'Heat exposure (sauna) increases growth hormone and improves cardiovascular function. Cold exposure reduces inflammation and builds resilience.',
+ARRAY['Sauna: 15-20 min at 170-200°F, 2-4x/week', 'Cold: 2-5 min cold immersion, 2-4x/week', 'End workouts with cold for recovery', 'Use sauna on rest days for growth hormone', 'Stay hydrated']),
+
+('Daily Mobility Routine', 'Spend 10-15 minutes daily on stretching and mobility work.', 'fitness', 'easy', 15, 'daily',
+'Mobility work prevents injury, improves movement quality, and reduces chronic tension. Consistency matters more than duration.',
+ARRAY['Choose 5-10 movements targeting tight areas', 'Hold stretches for 30-60 seconds', 'Include hip, shoulder, and spine work', 'Do before bed or first thing in morning', 'Can combine with other activities (TV, calls)']),
+
+('Active Recovery', 'Take dedicated recovery days with light movement instead of complete rest.', 'fitness', 'easy', 30, 'weekly',
+'Active recovery promotes blood flow for faster recovery while preventing the stiffness of complete rest. Quality recovery enables quality training.',
+ARRAY['Schedule 1-2 active recovery days per week', 'Light activities: walking, swimming, yoga', 'Keep heart rate low', 'Focus on areas that are tight or sore', 'Prioritize sleep on recovery days']),
+
+('Progressive Overload Tracking', 'Track workouts and systematically increase difficulty over time.', 'fitness', 'medium', NULL, 'weekly',
+'Progressive overload is the fundamental principle of adaptation. Without tracking, it''s easy to plateau or overtrain.',
+ARRAY['Use an app or notebook to track workouts', 'Record weight, reps, sets, and RPE', 'Increase by small increments (2.5-5%)', 'Review progress weekly', 'Deload every 4-6 weeks']);
+</file>
+
+</files>

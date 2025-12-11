@@ -11,7 +11,7 @@
 | Date | 251211 |
 | Description | API route handling Stripe webhook events with idempotency |
 | Priority | P0 |
-| Implementation Status | Not Started |
+| Implementation Status | DONE |
 | Review Status | Draft |
 
 ## Key Insights
@@ -404,25 +404,25 @@ stripe trigger invoice.payment_failed
 ```
 
 ## Todo List
-- [ ] Create app/api/webhooks/stripe/route.ts
-- [ ] Implement signature verification
-- [ ] Implement idempotency check
-- [ ] Handle checkout.session.completed
-- [ ] Handle customer.subscription.updated
-- [ ] Handle customer.subscription.deleted
-- [ ] Handle invoice.payment_failed
-- [ ] Install Stripe CLI
-- [ ] Test with stripe listen locally
-- [ ] Verify database updates
+- [x] Create app/api/webhooks/stripe/route.ts
+- [x] Implement signature verification
+- [x] Implement idempotency check
+- [x] Handle checkout.session.completed
+- [x] Handle customer.subscription.updated
+- [x] Handle customer.subscription.deleted
+- [x] Handle invoice.payment_failed
+- [x] Install Stripe CLI
+- [x] Test with stripe listen locally
+- [x] Verify database updates
 
 ## Success Criteria
-- [ ] Webhook receives events from Stripe
-- [ ] Signature verification rejects invalid requests
-- [ ] Duplicate events are skipped (idempotency)
-- [ ] checkout.session.completed upgrades user to Pro
-- [ ] subscription.deleted downgrades user to Free
-- [ ] webhook_events table records all events
-- [ ] Service role bypasses RLS successfully
+- [x] Webhook receives events from Stripe
+- [x] Signature verification rejects invalid requests
+- [x] Duplicate events are skipped (idempotency)
+- [x] checkout.session.completed upgrades user to Pro
+- [x] subscription.deleted downgrades user to Free
+- [x] webhook_events table records all events
+- [x] Service role bypasses RLS successfully
 
 ## Risk Assessment
 | Risk | Likelihood | Impact | Mitigation |

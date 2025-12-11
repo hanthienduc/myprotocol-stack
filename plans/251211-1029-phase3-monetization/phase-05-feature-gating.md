@@ -11,7 +11,7 @@
 | Date | 251211 |
 | Description | Server-side feature gating utilities and upgrade prompts |
 | Priority | P1 |
-| Implementation Status | Not Started |
+| Implementation Status | DONE |
 | Review Status | Draft |
 
 ## Key Insights
@@ -385,26 +385,27 @@ export default async function AnalyticsPage() {
 ```
 
 ## Todo List
-- [ ] Create lib/subscription.ts
-- [ ] Implement getSubscriptionLimits
-- [ ] Implement canCreateStack
-- [ ] Implement canAddProtocol
-- [ ] Implement hasFeature
-- [ ] Create UpgradePrompt component
-- [ ] Create FeatureGate component
-- [ ] Create StackLimitBanner component
-- [ ] Integrate into stack creation
-- [ ] Integrate into analytics page
-- [ ] Test with Free user
-- [ ] Test with Pro user
+- [x] Create lib/subscription.ts
+- [x] Implement getSubscriptionLimits
+- [x] Implement canCreateStack
+- [x] Implement canAddProtocol
+- [x] Implement hasFeature
+- [x] Create UpgradePrompt component
+- [x] Create FeatureGate component
+- [x] Create StackLimitBanner component
+- [x] Integrate into stack creation
+- [x] Integrate StackLimitBanner into stacks list page
+- [ ] Integrate into analytics page (deferred - analytics not built yet)
+- [x] Test with Free user
+- [x] Test with Pro user
 
 ## Success Criteria
-- [ ] Free users see limits (3 stacks, 7 days history)
-- [ ] Free users see upgrade prompts at limit
-- [ ] Pro users have unlimited access
-- [ ] FeatureGate hides Pro content from Free users
-- [ ] Stack creation blocked at limit with clear message
-- [ ] All checks are server-side
+- [x] Free users see limits (3 stacks, 7 days history)
+- [x] Free users see upgrade prompts at limit
+- [x] Pro users have unlimited access
+- [x] FeatureGate hides Pro content from Free users
+- [x] Stack creation blocked at limit with clear message
+- [x] All checks are server-side
 
 ## Risk Assessment
 | Risk | Likelihood | Impact | Mitigation |

@@ -11,7 +11,7 @@
 | Date | 251211 |
 | Description | Create subscriptions and webhook_events tables, extend profiles |
 | Priority | P0 |
-| Implementation Status | Not Started |
+| Implementation Status | DONE |
 | Review Status | Draft |
 
 ## Key Insights
@@ -194,23 +194,23 @@ supabase db push
 ```
 
 ## Todo List
-- [ ] Create migration file
-- [ ] Add stripe_customer_id to profiles
-- [ ] Create subscriptions table
-- [ ] Create webhook_events table
-- [ ] Add RLS policies
-- [ ] Update TypeScript types
-- [ ] Apply migration to database
-- [ ] Test: verify tables created
-- [ ] Test: verify RLS blocks user writes
+- [x] Create migration file
+- [x] Add stripe_customer_id to profiles
+- [x] Create subscriptions table
+- [x] Create webhook_events table
+- [x] Add RLS policies
+- [x] Update TypeScript types
+- [x] Apply migration to database
+- [x] Test: verify tables created
+- [x] Test: verify RLS blocks user writes
 
 ## Success Criteria
-- [ ] `profiles.stripe_customer_id` column exists
-- [ ] `subscriptions` table with proper indexes
-- [ ] `webhook_events` table for idempotency
-- [ ] RLS: users can read subscriptions, cannot write
-- [ ] RLS: webhook_events hidden from users
-- [ ] Types exported from @myprotocolstack/database
+- [x] `profiles.stripe_customer_id` column exists
+- [x] `subscriptions` table with proper indexes
+- [x] `webhook_events` table for idempotency
+- [x] RLS: users can read subscriptions, cannot write
+- [x] RLS: webhook_events hidden from users
+- [x] Types exported from @myprotocolstack/database
 
 ## Risk Assessment
 | Risk | Likelihood | Impact | Mitigation |

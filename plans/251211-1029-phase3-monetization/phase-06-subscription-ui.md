@@ -11,7 +11,7 @@
 | Date | 251211 |
 | Description | Settings page subscription section, pricing modal, upgrade buttons |
 | Priority | P1 |
-| Implementation Status | Not Started |
+| Implementation Status | DONE |
 | Review Status | Draft |
 
 ## Key Insights
@@ -593,27 +593,27 @@ const showUpgrade = searchParams?.upgrade === 'true';
 ```
 
 ## Todo List
-- [ ] Create plan-toggle.tsx
-- [ ] Create pricing-modal.tsx
-- [ ] Create checkout-feedback.tsx
-- [ ] Create subscription-card.tsx
-- [ ] Update settings page
-- [ ] Wire up checkout flow
-- [ ] Wire up portal flow
-- [ ] Test Free user -> Upgrade
-- [ ] Test Pro user -> Manage
-- [ ] Test checkout success toast
-- [ ] Test checkout cancel toast
+- [x] Create plan-toggle.tsx (integrated into pricing-modal)
+- [x] Create pricing-modal.tsx
+- [ ] Create checkout-feedback.tsx (deferred - using sonner toast)
+- [x] Create subscription-card.tsx
+- [x] Update settings page
+- [x] Wire up checkout flow
+- [x] Wire up portal flow
+- [x] Test Free user -> Upgrade
+- [x] Test Pro user -> Manage
+- [x] Test checkout success toast
+- [x] Test checkout cancel toast
 
 ## Success Criteria
-- [ ] Free users see current limits and upgrade option
-- [ ] Pro users see plan details and manage button
-- [ ] Pricing modal shows monthly/annual toggle
-- [ ] Annual shows 17% discount badge
-- [ ] Subscribe button redirects to Stripe Checkout
-- [ ] Manage button opens Stripe Portal
-- [ ] Success/cancel toasts appear after redirect
-- [ ] Mobile responsive
+- [x] Free users see current limits and upgrade option
+- [x] Pro users see plan details and manage button
+- [x] Pricing modal shows monthly/annual toggle
+- [x] Annual shows 17% discount badge
+- [x] Subscribe button redirects to Stripe Checkout
+- [x] Manage button opens Stripe Portal
+- [x] Success/cancel toasts appear after redirect
+- [x] Mobile responsive
 
 ## Risk Assessment
 | Risk | Likelihood | Impact | Mitigation |

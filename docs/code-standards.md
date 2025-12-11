@@ -1,7 +1,7 @@
 # Code Standards & Patterns
 
-**Last Updated**: 2025-12-09
-**Version**: 0.1.0
+**Last Updated**: 2025-12-11
+**Version**: 0.2.0
 **Project**: MyProtocolStack
 
 ## Overview
@@ -392,9 +392,350 @@ export function ProtocolCard({ protocol, onSelect }) { }
 - [ ] Component has proper types
 - [ ] Server actions handle errors
 
+## Stripe Payment Integration (Phase 3)
+
+### Stripe Client Pattern
+
+**File**: `lib/stripe.ts`
+
+Always initialize Stripe with proper version specification:
+
+```typescript
+import Stripe from "stripe";
+
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error("STRIPE_SECRET_KEY is not set");
+}
+
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: "2025-11-17.clover", // Pin specific API version
+  typescript: true,
+});
+
+// Price ID mapping
+export const STRIPE_PRICES = {
+  MONTHLY: process.env.STRIPE_PRICE_MONTHLY!,
+  ANNUAL: process.env.STRIPE_PRICE_ANNUAL!,
+} as const;
+
+// Utility functions
+export function getPlanFromPriceId(priceId: string): "pro" | "free" {
+  if (priceId === STRIPE_PRICES.MONTHLY || priceId === STRIPE_PRICES.ANNUAL) {
+    return "pro";
+  }
+  return "free";
+}
+
+export function isActiveSubscription(status: string): boolean {
+  return ["active", "trialing"].includes(status);
+}
+```
+
+**Key Principles:**
+- Pin Stripe API version (avoid breaking changes)
+- Use const assertions for price IDs
+- Export utility functions for type safety
+- Fail fast if env vars missing
+
+### Feature Gating Pattern
+
+**File**: `lib/subscription.ts`
+
+Define tier limits as constants, use helper functions:
+
+```typescript
+// Define limits once, use everywhere
+export const FREE_LIMITS = {
+  maxStacks: 3,
+  maxProtocolsPerStack: 10,
+  historyDays: 7,
+  advancedAnalytics: false,
+  aiRecommendations: false,
+  wearableSync: false,
+} as const;
+
+export const PRO_FEATURES = {
+  maxStacks: Infinity,
+  maxProtocolsPerStack: Infinity,
+  historyDays: Infinity,
+  advancedAnalytics: true,
+  aiRecommendations: true,
+  wearableSync: true,
+} as const;
+
+// Fetch tier from database
+export async function getUserTier(): Promise<SubscriptionTier> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return "free"; // Default to free if not logged in
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("subscription_tier")
+    .eq("id", user.id)
+    .single();
+
+  return (profile?.subscription_tier as SubscriptionTier) || "free";
+}
+
+// Specific feature gates
+export async function canCreateStack(): Promise<{
+  allowed: boolean;
+  current: number;
+  limit: number;
+}> {
+  const tier = await getUserTier();
+  const limit = tier === "pro" ? PRO_FEATURES.maxStacks : FREE_LIMITS.maxStacks;
+
+  // Count existing stacks
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { allowed: false, current: 0, limit: 0 };
+
+  const { count } = await supabase
+    .from("stacks")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", user.id);
+
+  const current = count || 0;
+  return { allowed: current < limit, current, limit };
+}
+
+// Require Pro - throw if not Pro
+export async function requirePro(): Promise<void> {
+  const tier = await getUserTier();
+  if (tier !== "pro") {
+    throw new Error("This feature requires a Pro subscription");
+  }
+}
+```
+
+**Key Principles:**
+- Define limits as constants (single source of truth)
+- Always fetch tier from database (real-time, Stripe as source)
+- Return clear objects with current/limit info
+- Use `requirePro()` to throw early in server actions
+
+### Webhook Handler Pattern
+
+**File**: `app/api/webhooks/stripe/route.ts`
+
+Always verify signature and check idempotency:
+
+```typescript
+import { stripe } from "@/lib/stripe";
+import { createClient } from "@myprotocolstack/database/server";
+
+const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+
+export async function POST(request: Request) {
+  const body = await request.text();
+  const signature = request.headers.get("stripe-signature")!;
+
+  let event;
+  try {
+    // 1. Always verify signature first
+    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+  } catch (err) {
+    console.error("Webhook signature verification failed:", err);
+    return new Response("Webhook signature verification failed", { status: 400 });
+  }
+
+  const supabase = await createClient();
+
+  // 2. Check idempotency - prevent duplicate processing
+  const { data: existing } = await supabase
+    .from("webhook_events")
+    .select("id")
+    .eq("stripe_event_id", event.id)
+    .single();
+
+  if (existing) {
+    console.log("Webhook already processed:", event.id);
+    return new Response("OK", { status: 200 });
+  }
+
+  try {
+    // 3. Process event
+    switch (event.type) {
+      case "checkout.session.completed":
+        await handleCheckoutComplete(event.data.object, supabase);
+        break;
+
+      case "customer.subscription.updated":
+        await handleSubscriptionUpdate(event.data.object, supabase);
+        break;
+
+      case "customer.subscription.deleted":
+        await handleSubscriptionDelete(event.data.object, supabase);
+        break;
+
+      default:
+        console.log("Unhandled event type:", event.type);
+    }
+
+    // 4. Mark as completed
+    await supabase
+      .from("webhook_events")
+      .insert({
+        stripe_event_id: event.id,
+        event_type: event.type,
+        status: "completed",
+        payload: event.data,
+      });
+
+    return new Response("OK", { status: 200 });
+  } catch (err) {
+    // 5. Log failure but don't crash
+    console.error("Webhook processing error:", err);
+
+    await supabase
+      .from("webhook_events")
+      .insert({
+        stripe_event_id: event.id,
+        event_type: event.type,
+        status: "failed",
+        payload: event.data,
+        error_details: String(err),
+      });
+
+    // Return 500 to signal Stripe to retry
+    return new Response("Processing failed", { status: 500 });
+  }
+}
+
+async function handleCheckoutComplete(session: any, supabase: any) {
+  // Get subscription details
+  const subscription = await stripe.subscriptions.retrieve(session.subscription);
+
+  // Get user ID from customer metadata
+  const customer = await stripe.customers.retrieve(session.customer);
+  const userId = customer.metadata?.userId;
+
+  if (!userId) throw new Error("No userId in customer metadata");
+
+  // Save subscription to database
+  await supabase
+    .from("subscriptions")
+    .upsert({
+      user_id: userId,
+      stripe_subscription_id: subscription.id,
+      stripe_customer_id: session.customer,
+      status: subscription.status,
+      price_id: subscription.items.data[0].price.id,
+      current_period_start: new Date(subscription.current_period_start * 1000),
+      current_period_end: new Date(subscription.current_period_end * 1000),
+    });
+
+  // Update profile tier
+  await supabase
+    .from("profiles")
+    .update({ subscription_tier: "pro" })
+    .eq("id", userId);
+}
+```
+
+**Key Principles:**
+- **Verify signature first** - never process unsigned events
+- **Check idempotency** - prevent duplicate database updates
+- **Try/catch with logging** - record all errors to webhook_events
+- **Return 500 on failure** - Stripe will retry
+- **Use upsert** - handle subscription updates idempotently
+- **Update profiles.subscription_tier** - source of truth for tier
+
+### Server Action Pattern
+
+**File**: `actions/subscription.ts`
+
+Use 'use server' and handle errors clearly:
+
+```typescript
+'use server'
+
+import { stripe, STRIPE_PRICES } from "@/lib/stripe";
+import { createClient } from "@myprotocolstack/database/server";
+
+export async function createCheckoutSession(priceId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
+
+  try {
+    // Get or create Stripe customer
+    let stripeCustomerId = await getOrCreateStripeCustomer(user.id, user.email!);
+
+    // Create checkout session
+    const session = await stripe.checkout.sessions.create({
+      customer: stripeCustomerId,
+      line_items: [{ price: priceId, quantity: 1 }],
+      mode: "subscription",
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
+      metadata: { userId: user.id },
+    });
+
+    if (!session.url) {
+      throw new Error("No checkout URL returned");
+    }
+
+    return { url: session.url };
+  } catch (err) {
+    console.error("Checkout session creation failed:", err);
+    throw new Error("Failed to create checkout session");
+  }
+}
+
+async function getOrCreateStripeCustomer(
+  userId: string,
+  email: string
+): Promise<string> {
+  const supabase = await createClient();
+
+  // Check if customer already exists
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("stripe_customer_id")
+    .eq("id", userId)
+    .single();
+
+  if (profile?.stripe_customer_id) {
+    return profile.stripe_customer_id;
+  }
+
+  // Create new customer
+  const customer = await stripe.customers.create({
+    email,
+    metadata: { userId },
+  });
+
+  // Save to database
+  await supabase
+    .from("profiles")
+    .update({ stripe_customer_id: customer.id })
+    .eq("id", userId);
+
+  return customer.id;
+}
+```
+
+**Key Principles:**
+- **Use 'use server'** - mark all server actions
+- **Check auth first** - throw early if unauthorized
+- **Use try/catch** - return user-friendly error messages
+- **Store stripe_customer_id** - avoid creating duplicates
+- **Return clear response** - { url, error, etc }
+
 ## References
 
 - [Next.js App Router](https://nextjs.org/docs/app)
 - [Supabase JS Client](https://supabase.com/docs/reference/javascript)
 - [shadcn/ui](https://ui.shadcn.com)
 - [Tailwind CSS](https://tailwindcss.com/docs)
+- [Stripe Node.js SDK](https://github.com/stripe/stripe-node)
+- [Stripe Webhooks](https://stripe.com/docs/webhooks)
+- [Payment Integration Guide](./payment-integration-guide.md)

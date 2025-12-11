@@ -11,7 +11,7 @@
 | Date | 251211 |
 | Description | Server actions for Stripe Checkout and Customer Portal |
 | Priority | P0 |
-| Implementation Status | Not Started |
+| Implementation Status | DONE |
 | Review Status | Draft |
 
 ## Key Insights
@@ -290,23 +290,23 @@ for (const envVar of requiredEnvVars) {
 ```
 
 ## Todo List
-- [ ] Install stripe package
-- [ ] Create lib/stripe.ts
-- [ ] Create actions/subscription.ts
-- [ ] Implement createCheckoutSession
-- [ ] Implement createPortalSession
-- [ ] Implement getSubscriptionStatus
-- [ ] Test checkout flow (test mode)
-- [ ] Test portal session
-- [ ] Verify customer ID stored in profile
+- [x] Install stripe package
+- [x] Create lib/stripe.ts
+- [x] Create actions/subscription.ts
+- [x] Implement createCheckoutSession
+- [x] Implement createPortalSession
+- [x] Implement getSubscriptionStatus
+- [x] Test checkout flow (test mode)
+- [x] Test portal session
+- [x] Verify customer ID stored in profile
 
 ## Success Criteria
-- [ ] Checkout redirects to Stripe-hosted page
-- [ ] Success URL includes session_id param
-- [ ] Cancel URL returns to settings
-- [ ] Portal opens for subscribed users
-- [ ] stripe_customer_id saved to profiles
-- [ ] Returning customers reuse existing customer
+- [x] Checkout redirects to Stripe-hosted page
+- [x] Success URL includes session_id param
+- [x] Cancel URL returns to settings
+- [x] Portal opens for subscribed users
+- [x] stripe_customer_id saved to profiles
+- [x] Returning customers reuse existing customer
 
 ## Risk Assessment
 | Risk | Likelihood | Impact | Mitigation |

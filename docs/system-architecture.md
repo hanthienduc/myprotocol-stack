@@ -160,6 +160,47 @@ CREATE POLICY "Anyone can read protocols"
   ON public.protocols FOR SELECT
   TO authenticated
   USING (true);
+
+-- Subscriptions (Phase 3: Monetization)
+CREATE TABLE public.subscriptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  stripe_subscription_id TEXT UNIQUE NOT NULL,
+  stripe_customer_id TEXT NOT NULL,
+  status TEXT NOT NULL, -- active, past_due, canceled, unpaid, incomplete, trialing
+  price_id TEXT NOT NULL,
+  current_period_start TIMESTAMPTZ,
+  current_period_end TIMESTAMPTZ,
+  cancel_at_period_end BOOLEAN DEFAULT FALSE,
+  canceled_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Webhook events table (idempotency tracking)
+CREATE TABLE IF NOT EXISTS webhook_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  stripe_event_id TEXT UNIQUE NOT NULL,
+  event_type TEXT NOT NULL,
+  status TEXT DEFAULT 'processing', -- processing, completed, failed
+  payload JSONB,
+  error_details TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Subscriptions indexes
+CREATE INDEX idx_subscriptions_user_id ON public.subscriptions(user_id);
+CREATE INDEX idx_subscriptions_stripe_customer_id ON public.subscriptions(stripe_customer_id);
+CREATE INDEX idx_subscriptions_status ON public.subscriptions(status);
+CREATE INDEX idx_webhook_events_stripe_event_id ON webhook_events(stripe_event_id);
+
+-- Subscriptions RLS
+ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE webhook_events ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can read own subscriptions"
+  ON subscriptions FOR SELECT
+  USING (auth.uid() = user_id);
 ```
 
 ## Application Structure
@@ -247,28 +288,141 @@ Insert/update tracking record
 Update UI (optimistic)
 ```
 
-### Subscription Flow
+### Subscription Flow (Phase 3: Monetization)
 
 ```
 User clicks "Upgrade to Pro"
     │
     ▼
-Create Stripe Checkout session
+Call server action: createCheckoutSession()
     │
     ▼
-Redirect to Stripe Checkout
+Stripe API: Create Checkout Session
+    │
+    ├─ Line items: price_id (monthly or annual)
+    ├─ Customer mode: 'subscription'
+    └─ Success/cancel URLs
     │
     ▼
-User completes payment
+Redirect to Stripe Checkout URL
     │
     ▼
-Stripe webhook: checkout.session.completed
+User completes payment on Stripe
     │
     ▼
-Update profiles.subscription_tier = 'pro'
+Stripe webhooks (async):
+├─ checkout.session.completed
+├─ customer.subscription.created
+├─ customer.subscription.updated
+└─ customer.subscription.deleted
     │
     ▼
-Redirect to /dashboard with success
+Webhook handler (/api/webhooks/stripe):
+├─ Verify signature with STRIPE_WEBHOOK_SECRET
+├─ Check idempotency via webhook_events table
+├─ Create/update subscription record
+└─ Update profiles.subscription_tier
+    │
+    ▼
+profiles.subscription_tier updated ('pro' or 'free')
+    │
+    ▼
+User can access Pro features based on tier
+```
+
+### Stripe Integration Architecture
+
+```
+Client (Next.js)
+    │
+    ├─ Pricing Modal (pricing-modal.tsx)
+    │   └─ Shows $12/mo or $99/yr options
+    │   └─ Calls: createCheckoutSession() server action
+    │
+    └─ Subscription Card (subscription-card.tsx)
+        └─ Displays current tier + renewal date
+        └─ Manages upgrade/downgrade/cancel flows
+
+        │
+        ▼
+
+Server Layer (apps/web/)
+    │
+    ├─ lib/stripe.ts
+    │   ├─ Stripe client initialization
+    │   ├─ STRIPE_PRICES mapping (monthly/annual)
+    │   ├─ getPlanFromPriceId() - price ID to tier
+    │   └─ isActiveSubscription() - status validation
+    │
+    ├─ lib/subscription.ts
+    │   ├─ FREE_LIMITS constant (3 stacks, 7 days history)
+    │   ├─ PRO_FEATURES constant (unlimited, analytics)
+    │   ├─ getUserTier() - fetch current tier from DB
+    │   ├─ canCreateStack() - feature gating check
+    │   ├─ hasAdvancedAnalytics() - tier-based access
+    │   └─ isPro() / getFeatureLimits() helpers
+    │
+    ├─ actions/subscription.ts
+    │   ├─ createCheckoutSession() - create Stripe session
+    │   ├─ updateSubscription() - sync from webhook
+    │   └─ cancelSubscription() - handle cancellations
+    │
+    └─ app/api/webhooks/stripe/route.ts
+        ├─ Verify webhook signature
+        ├─ Check idempotency (webhook_events table)
+        ├─ Process events:
+        │   ├─ checkout.session.completed
+        │   ├─ customer.subscription.updated
+        │   └─ customer.subscription.deleted
+        └─ Update subscriptions + profiles tables
+
+        │
+        ▼
+
+Database Layer (Supabase PostgreSQL)
+    │
+    ├─ profiles.stripe_customer_id (TEXT, unique)
+    ├─ profiles.subscription_tier ('free' | 'pro')
+    │
+    ├─ subscriptions table
+    │   ├─ id (UUID primary key)
+    │   ├─ user_id (FK to profiles)
+    │   ├─ stripe_subscription_id (unique, Stripe source)
+    │   ├─ stripe_customer_id
+    │   ├─ status (active, past_due, canceled, etc)
+    │   ├─ price_id (monthly or annual price)
+    │   ├─ current_period_start/end (billing dates)
+    │   ├─ cancel_at_period_end (cancellation flag)
+    │   └─ created_at, updated_at
+    │
+    └─ webhook_events table (idempotency)
+        ├─ id (UUID primary key)
+        ├─ stripe_event_id (unique constraint)
+        ├─ event_type (checkout.session.completed, etc)
+        ├─ status (processing, completed, failed)
+        ├─ payload (JSONB from Stripe)
+        └─ error_details (if failed)
+
+        │
+        ▼
+
+Stripe (External Service)
+    │
+    ├─ Customers
+    │   └─ stripe_customer_id maps to user account
+    │
+    ├─ Subscriptions
+    │   ├─ Billing cycles (monthly/annual)
+    │   ├─ Automatic renewal
+    │   └─ Payment collection
+    │
+    ├─ Webhooks
+    │   ├─ Signed with API secret
+    │   ├─ Delivery retry logic (Stripe handles)
+    │   └─ Event IDs for idempotency
+    │
+    └─ Checkout Sessions
+        └─ Temporary sessions for payment capture
 ```
 
 ## API Endpoints
@@ -335,11 +489,12 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 
-# Stripe
-STRIPE_SECRET_KEY=
-STRIPE_WEBHOOK_SECRET=
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
-STRIPE_PRO_PRICE_ID=
+# Stripe (Phase 3: Monetization)
+STRIPE_SECRET_KEY=                      # Server-side secret (sk_live_...)
+STRIPE_WEBHOOK_SECRET=                  # Webhook signing secret (whsec_...)
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=     # Public key (pk_live_...)
+STRIPE_PRICE_MONTHLY=price_1...         # $12/mo price ID
+STRIPE_PRICE_ANNUAL=price_2...          # $99/yr price ID
 
 # App
 NEXT_PUBLIC_APP_URL=https://protocolstack.app

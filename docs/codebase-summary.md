@@ -1,9 +1,9 @@
 # Codebase Summary
 
-**Last Updated**: 2025-12-10
-**Version**: 0.3.0
+**Last Updated**: 2025-12-11
+**Version**: 0.4.0
 **Project**: MyProtocolStack
-**Phase Status**: Phase 4 Social Sharing Complete, Phase 5 Growth Complete, Phase 6 Search & Filtering Complete
+**Phase Status**: Phase 3 Monetization Complete, Phase 4 Social Sharing Complete, Phase 5 Growth Complete, Phase 6 Search & Filtering Complete
 
 ## Overview
 
@@ -112,6 +112,9 @@ myprotocolstack/
 │   ├── stacks/
 │   │   ├── stack-builder.tsx     # Create/edit form
 │   │   └── delete-stack-button.tsx
+│   ├── subscription/             # Phase 3: Monetization UI
+│   │   ├── pricing-modal.tsx     # Stripe Checkout trigger ($12/mo, $99/yr)
+│   │   └── subscription-card.tsx # Display subscription status & renewal date
 │   ├── tracking/
 │   │   └── today-view.tsx        # Daily check-in UI
 │   └── analytics/                # Phase 4: Analytics components
@@ -127,6 +130,8 @@ myprotocolstack/
 │   │   ├── client.ts            # Browser client
 │   │   ├── server.ts            # Server client
 │   │   └── middleware.ts        # Auth middleware
+│   ├── stripe.ts                # Phase 3: Stripe client & price mapping
+│   ├── subscription.ts          # Phase 3: Feature gating logic (FREE_LIMITS, PRO_FEATURES)
 │   ├── sharing/                  # Phase 4: Social sharing utilities
 │   │   ├── utm.ts               # UTM param builder for share tracking
 │   │   └── social-links.ts      # Platform-specific share URL generators
@@ -445,3 +450,104 @@ Using ClaudeKit Engineer with:
 - Toast notifications via Sonner
 
 **Last Review**: 2025-12-10
+
+---
+
+## Phase 3: Monetization (Dec 2025)
+
+**Status:** Complete
+
+**New Monetization System:**
+- `lib/stripe.ts` - Stripe client initialization and utilities
+  - `stripe` - Stripe instance (API v2025-11-17.clover)
+  - `STRIPE_PRICES` - Price ID mapping (monthly/annual)
+  - `getPlanFromPriceId()` - Convert price ID to tier ('pro' or 'free')
+  - `isActiveSubscription()` - Check if subscription status is active/trialing
+
+- `lib/subscription.ts` - Feature gating logic
+  - `FREE_LIMITS` constant (maxStacks: 3, historyDays: 7, etc)
+  - `PRO_FEATURES` constant (unlimited, advanced features enabled)
+  - `getUserTier()` - Fetch current tier from profiles table
+  - `canCreateStack()` - Check if user can create another stack
+  - `hasAdvancedAnalytics()` - Pro-tier feature gate
+  - `getHistoryDaysLimit()` - Get history window based on tier
+  - `isPro()` / `getFeatureLimits()` - Helper functions
+  - `requirePro()` - Throw error if not pro (for server actions)
+
+- `actions/subscription.ts` - Server actions for subscription management
+  - `createCheckoutSession()` - Generate Stripe Checkout URL
+  - `updateSubscription()` - Sync subscription from webhook
+  - `cancelSubscription()` - Handle subscription cancellation
+
+- `app/api/webhooks/stripe/route.ts` - Webhook handler
+  - Verify webhook signature (STRIPE_WEBHOOK_SECRET)
+  - Idempotency check via webhook_events table
+  - Process events: checkout.session.completed, customer.subscription.updated, customer.subscription.deleted
+  - Update subscriptions + profiles.subscription_tier
+
+**Database Schema (Phase 3):**
+- `profiles.stripe_customer_id` (TEXT, unique) - Reference to Stripe customer
+- `subscriptions` table:
+  - id, user_id, stripe_subscription_id (unique), stripe_customer_id
+  - status (active, past_due, canceled, unpaid, incomplete, trialing)
+  - price_id (monthly or annual price)
+  - current_period_start/end, cancel_at_period_end, canceled_at
+  - created_at, updated_at
+  - Indexes: user_id, stripe_customer_id, status
+  - RLS: Users can read own subscriptions only
+  - Trigger: Auto-update updated_at on changes
+
+- `webhook_events` table (idempotency):
+  - id, stripe_event_id (unique), event_type, status
+  - payload (JSONB), error_details, created_at
+  - Index: stripe_event_id
+  - RLS: Service role only (no user access)
+
+**UI Components:**
+- `components/subscription/pricing-modal.tsx`
+  - Displays pricing options ($12/mo, $99/yr)
+  - Calls createCheckoutSession() on button click
+  - Stripe Checkout redirect
+  - Responsive modal layout
+
+- `components/subscription/subscription-card.tsx`
+  - Shows current tier, renewal date, status
+  - Upgrade/downgrade/cancel buttons
+  - Pro badge display
+
+**Feature Gating Pattern:**
+```typescript
+// Free tier limits
+const tier = await getUserTier();
+const canCreate = tier === 'pro' || stackCount < FREE_LIMITS.maxStacks;
+
+// Pro features
+if (user.subscription_tier === 'pro') {
+  // Enable advanced analytics, AI recommendations, etc
+}
+```
+
+**Pricing:**
+- Free: $0 (3 stacks, 7-day history)
+- Pro Monthly: $12/mo (unlimited)
+- Pro Annual: $99/yr (unlimited)
+
+**Stripe Integration Flow:**
+1. User clicks "Upgrade to Pro"
+2. Call createCheckoutSession() server action
+3. Stripe API creates checkout session
+4. Redirect to Stripe Checkout URL
+5. User completes payment
+6. Stripe sends webhook events
+7. Webhook handler updates subscriptions + profiles
+8. profiles.subscription_tier updated to 'pro'
+9. Feature gates check tier and grant access
+
+**Security:**
+- Webhook signature verification (STRIPE_WEBHOOK_SECRET)
+- Idempotency via webhook_events table (prevents duplicate processing)
+- RLS ensures users only access own subscription data
+- No card data on our servers (Stripe handles all PCI compliance)
+- Stripe as source of truth - webhook-driven sync
+
+**Last Review**: 2025-12-11
