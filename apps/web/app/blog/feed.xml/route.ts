@@ -2,7 +2,7 @@ import { getAllArticles } from "@/lib/blog/articles";
 
 export async function GET() {
   const articles = getAllArticles();
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://myprotocolstack.com";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://protocolstack.app";
 
   const rssItems = articles
     .map(

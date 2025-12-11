@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!article) return { title: "Article Not Found" };
 
   const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL || "https://myprotocolstack.com";
+    process.env.NEXT_PUBLIC_APP_URL || "https://protocolstack.app";
 
   return {
     title: article.frontmatter.title,
@@ -62,7 +62,7 @@ export default async function ArticlePage({ params }: Props) {
   }
 
   const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL || "https://myprotocolstack.com";
+    process.env.NEXT_PUBLIC_APP_URL || "https://protocolstack.app";
 
   const articleSchema = {
     "@context": "https://schema.org",

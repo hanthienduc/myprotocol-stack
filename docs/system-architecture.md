@@ -342,7 +342,7 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 STRIPE_PRO_PRICE_ID=
 
 # App
-NEXT_PUBLIC_APP_URL=https://myprotocolstack.com
+NEXT_PUBLIC_APP_URL=https://protocolstack.app
 
 # Email (Resend)
 RESEND_API_KEY=

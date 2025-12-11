@@ -105,7 +105,7 @@ export function PrivacySettings({ initialData }: PrivacySettingsProps) {
   const baseUrl =
     typeof window !== "undefined"
       ? window.location.origin
-      : process.env.NEXT_PUBLIC_APP_URL || "https://myprotocolstack.com";
+      : process.env.NEXT_PUBLIC_APP_URL || "https://protocolstack.app";
   const profileUrl = username ? `${baseUrl}/profile/${username}` : null;
 
   return (

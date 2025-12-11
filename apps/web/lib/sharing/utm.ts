@@ -10,7 +10,7 @@ export interface UTMParams {
 }
 
 const APP_URL =
-  process.env.NEXT_PUBLIC_APP_URL || "https://myprotocolstack.com";
+  process.env.NEXT_PUBLIC_APP_URL || "https://protocolstack.app";
 
 /**
  * Build a share URL with UTM parameters and optional referral code

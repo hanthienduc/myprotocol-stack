@@ -331,7 +331,7 @@ MyProtocolStack is a micro-SaaS for building and tracking personalized health pr
 ## Current Focus
 
 ### Immediate Next Steps
-1. Register domain (myprotocolstack.com)
+1. Register domain (protocolstack.app)
 2. Set up Next.js project
 3. Configure Supabase
 4. Design database schema

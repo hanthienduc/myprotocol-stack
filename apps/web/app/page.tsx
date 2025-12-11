@@ -3,6 +3,9 @@ import { Button } from "@myprotocolstack/ui";
 import { FeaturedProfiles } from "@/components/profile/featured-profiles";
 import { getFeaturedProfiles } from "@/actions/profile";
 
+// Force dynamic rendering - uses service role key for featured profiles
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   const featuredProfiles = await getFeaturedProfiles(6);
   return (

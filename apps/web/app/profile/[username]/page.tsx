@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const { profile } = data;
   const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL || "https://myprotocolstack.com";
+    process.env.NEXT_PUBLIC_APP_URL || "https://protocolstack.app";
 
   return {
     title: `${profile.full_name || profile.username}'s Health Stacks`,
@@ -50,7 +50,7 @@ export default async function ProfilePage({ params }: Props) {
   });
 
   const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL || "https://myprotocolstack.com";
+    process.env.NEXT_PUBLIC_APP_URL || "https://protocolstack.app";
   const profileSchema = {
     "@context": "https://schema.org",
     "@type": "Person",

@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 const siteUrl =
-  process.env.NEXT_PUBLIC_APP_URL || "https://myprotocolstack.com";
+  process.env.NEXT_PUBLIC_APP_URL || "https://protocolstack.app";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -76,7 +76,7 @@ const organizationSchema = {
   contactPoint: {
     "@type": "ContactPoint",
     contactType: "Support",
-    email: "support@myprotocolstack.com",
+    email: "support@protocolstack.app",
   },
 };
 
